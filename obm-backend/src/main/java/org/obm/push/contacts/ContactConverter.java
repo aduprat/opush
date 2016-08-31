@@ -73,7 +73,7 @@ public class ContactConverter {
 		msc.setFileAs(c.getDisplayName());
 		msc.setSuffix(c.getSuffix());
 		msc.setNickName(c.getAka());
-		msc.setTitle(c.getTitle());
+		msc.setJobTitle(c.getTitle());
 		msc.setDepartment(c.getService());
 		msc.setCompanyName(c.getCompany());
 		if (c.getWebsites().size() > 0) {
