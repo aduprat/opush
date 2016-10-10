@@ -194,3 +194,17 @@ So you will need as usually to run the <<opush-cassandra-schema.adoc#_upgrade, s
 |http://ci-obm.linagora.com/jira/browse/OP-228[OP-228]|Clean up m4j files when opush does not need them anymore
 |=====================================
 
+=== 3.2.0 to 3.2.1
+
+.Information about this migration
+OP-247 is resolved by creating some missing indexes, we advise to create them manually. +
+Read the blog article for more information http://obm.org/blog/opush-321-release.
+
+.Changelog
+[width="80%",cols="0,1",options="header"]
+|=====================================
+|*Key*|*Summary*
+|http://ci-obm.linagora.com/jira/browse/OP-246[OP-246]|The job title is not on the contact display name anymore
+|http://ci-obm.linagora.com/jira/browse/OP-247[OP-247]|Faster synchronization of devices
+|=====================================
+
