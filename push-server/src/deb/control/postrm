@@ -6,7 +6,8 @@ CONF_FILES='/etc/opush/sync_perms.ini
 /etc/opush/remote_console.ini
 /etc/opush/policy.ini
 /etc/opush/cassandra.ini
-/etc/opush/logback.xml'
+/etc/opush/logback.xml
+/etc/opush/dsn.ini'
 
 if [ $1 = 'purge' ]; then
 

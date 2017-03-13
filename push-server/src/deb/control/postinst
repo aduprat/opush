@@ -80,6 +80,13 @@ cp "${TEMPLATE}" "${NEWFILE}"
 ucf --three-way --debconf-ok "$NEWFILE" "$CONFIG"
 ucfr opush "${CONFIG}"
 
+NEWFILE=${TEMPDIR}/dsn.ini
+CONFIG=/etc/opush/dsn.ini
+TEMPLATE=/usr/share/o-push/debian-conf/dsn.ini
+cp "${TEMPLATE}" "${NEWFILE}"
+ucf --three-way --debconf-ok "$NEWFILE" "$CONFIG"
+ucfr opush "${CONFIG}"
+
 # When upgrading old OPush, init script is deleted
 if [ ! -f /etc/init.d/opush ]; then
 	cp /etc/opush/opush.sh /etc/init.d/opush 
