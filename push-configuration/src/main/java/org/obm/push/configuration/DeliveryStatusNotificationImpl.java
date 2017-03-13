@@ -1,6 +1,6 @@
 /* ***** BEGIN LICENSE BLOCK *****
  * 
- * Copyright (C) 2011-2014  Linagora
+ * Copyright (C) 2017  Linagora
  *
  * This program is free software: you can redistribute it and/or 
  * modify it under the terms of the GNU Affero General Public License as 
@@ -31,25 +31,46 @@
  * ***** END LICENSE BLOCK ***** */
 package org.obm.push.configuration;
 
-import org.obm.configuration.EmailConfiguration;
-import org.obm.configuration.SyncPermsConfigurationService;
-import org.obm.push.impl.OpushSyncPermsConfigurationService;
+import org.obm.configuration.utils.IniFile;
 
-import com.google.inject.AbstractModule;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
 
-public class OpushConfigurationModule extends AbstractModule {
+@Singleton
+public class DeliveryStatusNotificationImpl implements DeliveryStatusNotification {
+
+	@VisibleForTesting static final boolean DISABLE = false;
+	@VisibleForTesting static final String CONFIG_FILE_PATH = "/etc/opush/dsn.ini";
+	
+	public static class Factory {
+		
+		protected IniFile.Factory iniFileFactory;
+
+		public Factory() {
+			iniFileFactory = new IniFile.Factory();
+		}
+		
+		public DeliveryStatusNotificationImpl create() {
+			return new DeliveryStatusNotificationImpl(iniFileFactory.build(CONFIG_FILE_PATH));
+		}
+	}
+	
+	private final IniFile iniFile;
+	
+	@Inject
+	@VisibleForTesting DeliveryStatusNotificationImpl(IniFile iniFile) {
+		this.iniFile = iniFile;
+	}
 	
 	@Override
-	protected void configure() {
-		bind(SyncPermsConfigurationService.class).to(OpushSyncPermsConfigurationService.class);
-		bind(RemoteConsoleConfiguration.class).to(RemoteConsoleConfigurationFileImpl.class);
-		
-		DeliveryStatusNotificationImpl deliveryStatusNotificationImpl = new DeliveryStatusNotificationImpl.Factory().create();
-		bind(DeliveryStatusNotification.class).toInstance(deliveryStatusNotificationImpl);
-		
-		OpushEmailConfigurationImpl opushEmailConfigurationImpl = new OpushEmailConfigurationImpl.Factory().create();
-		bind(OpushEmailConfiguration.class).toInstance(opushEmailConfigurationImpl);
-		bind(EmailConfiguration.class).toInstance(opushEmailConfigurationImpl);
+	public boolean shouldSendDeliveryReceipt() {
+		return iniFile.getBooleanValue("receipt.delivery", DISABLE);
+	}
+
+	@Override
+	public boolean shouldSendReadReceipt() {
+		return iniFile.getBooleanValue("receipt.read", DISABLE);
 	}
 
 }

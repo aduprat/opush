@@ -1,6 +1,6 @@
 /* ***** BEGIN LICENSE BLOCK *****
  * 
- * Copyright (C) 2011-2014  Linagora
+ * Copyright (C) 2017  Linagora
  *
  * This program is free software: you can redistribute it and/or 
  * modify it under the terms of the GNU Affero General Public License as 
@@ -31,25 +31,9 @@
  * ***** END LICENSE BLOCK ***** */
 package org.obm.push.configuration;
 
-import org.obm.configuration.EmailConfiguration;
-import org.obm.configuration.SyncPermsConfigurationService;
-import org.obm.push.impl.OpushSyncPermsConfigurationService;
+public interface DeliveryStatusNotification {
 
-import com.google.inject.AbstractModule;
+	boolean shouldSendDeliveryReceipt();
 
-public class OpushConfigurationModule extends AbstractModule {
-	
-	@Override
-	protected void configure() {
-		bind(SyncPermsConfigurationService.class).to(OpushSyncPermsConfigurationService.class);
-		bind(RemoteConsoleConfiguration.class).to(RemoteConsoleConfigurationFileImpl.class);
-		
-		DeliveryStatusNotificationImpl deliveryStatusNotificationImpl = new DeliveryStatusNotificationImpl.Factory().create();
-		bind(DeliveryStatusNotification.class).toInstance(deliveryStatusNotificationImpl);
-		
-		OpushEmailConfigurationImpl opushEmailConfigurationImpl = new OpushEmailConfigurationImpl.Factory().create();
-		bind(OpushEmailConfiguration.class).toInstance(opushEmailConfigurationImpl);
-		bind(EmailConfiguration.class).toInstance(opushEmailConfigurationImpl);
-	}
-
+	boolean shouldSendReadReceipt();
 }
