@@ -184,6 +184,22 @@ include::sources/mail_conf.ini[]
 | +message.maxSize+		| +bytes+			| Max size allowed when sending a mail		
 |===============================================================================================================
 
+=== Delivery Status Notification
+
+You can ask Opush to send delivery status notifications. +
+Below is the default +/etc/opush/dsn.ini+ file:
+[source]
+----
+include::sources/dsn.ini[]
+----
+
+[cols="1,1,2", options="header"]
+|===============================================================================================================
+| Configuration key		| Value type			| Comments					
+| +receipt.delivery+		| +boolean+ (true/false)	| Opush send an automatic email when a new message arrives
+| +receipt.read+		| +boolean+ (true/false)	| Opush send an automatic email when a user reads a message
+|===============================================================================================================
+
 === LDAP
 
 ==== About LDAP in Opush
