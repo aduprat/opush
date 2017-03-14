@@ -1,6 +1,6 @@
 /* ***** BEGIN LICENSE BLOCK *****
  * 
- * Copyright (C) 2011-2014  Linagora
+ * Copyright (C) 2017  Linagora
  *
  * This program is free software: you can redistribute it and/or 
  * modify it under the terms of the GNU Affero General Public License as 
@@ -31,31 +31,12 @@
  * ***** END LICENSE BLOCK ***** */
 package org.obm.push.configuration;
 
-import java.io.File;
+import com.github.mustachejava.Mustache;
+import com.google.common.base.Optional;
 
-import org.obm.configuration.EmailConfiguration;
-import org.obm.configuration.SyncPermsConfigurationService;
-import org.obm.push.impl.OpushSyncPermsConfigurationService;
+public interface DeliveryStatusNotificationTemplates {
 
-import com.google.inject.AbstractModule;
-import com.google.inject.name.Names;
+	Optional<Mustache> deliveryReceipt();
 
-public class OpushConfigurationModule extends AbstractModule {
-	
-	@Override
-	protected void configure() {
-		bind(SyncPermsConfigurationService.class).to(OpushSyncPermsConfigurationService.class);
-		bind(RemoteConsoleConfiguration.class).to(RemoteConsoleConfigurationFileImpl.class);
-		
-		DeliveryStatusNotificationImpl deliveryStatusNotificationImpl = new DeliveryStatusNotificationImpl.Factory().create();
-		bind(DeliveryStatusNotification.class).toInstance(deliveryStatusNotificationImpl);
-		bind(DeliveryStatusNotificationTemplates.class).to(DeliveryStatusNotificationTemplatesImpl.class);
-		
-		OpushEmailConfigurationImpl opushEmailConfigurationImpl = new OpushEmailConfigurationImpl.Factory().create();
-		bind(OpushEmailConfiguration.class).toInstance(opushEmailConfigurationImpl);
-		bind(EmailConfiguration.class).toInstance(opushEmailConfigurationImpl);
-
-		bind(File.class).annotatedWith(Names.named("mustacheTemplatesRoot")).toInstance(new File("/etc/opush"));
-	}
-
+	Optional<Mustache> readReceipt();
 }

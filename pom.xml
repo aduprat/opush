@@ -59,6 +59,7 @@
 		<maven-surefire-plugin.version>2.18.1</maven-surefire-plugin.version>
 		<maven-war-plugin.version>2.6</maven-war-plugin.version>
 		<mina-core.version>2.0.7</mina-core.version>
+		<mustache.version>0.8.18</mustache.version>
 		<powermock.version>1.6.1</powermock.version>
 		<resteasy.version>3.0.10.Final</resteasy.version>
 		<scala.version>2.10.4</scala.version>
@@ -322,6 +323,11 @@
 				<groupId>com.fasterxml.jackson.datatype</groupId>
 				<artifactId>jackson-datatype-guava</artifactId>
 				<version>${jackson.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.github.spullara.mustache.java</groupId>
+				<artifactId>compiler</artifactId>
+				<version>${mustache.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.google.guava</groupId>

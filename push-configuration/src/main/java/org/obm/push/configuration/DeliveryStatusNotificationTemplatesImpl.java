@@ -1,6 +1,6 @@
 /* ***** BEGIN LICENSE BLOCK *****
  * 
- * Copyright (C) 2011-2014  Linagora
+ * Copyright (C) 2017  Linagora
  *
  * This program is free software: you can redistribute it and/or 
  * modify it under the terms of the GNU Affero General Public License as 
@@ -33,29 +33,47 @@ package org.obm.push.configuration;
 
 import java.io.File;
 
-import org.obm.configuration.EmailConfiguration;
-import org.obm.configuration.SyncPermsConfigurationService;
-import org.obm.push.impl.OpushSyncPermsConfigurationService;
+import com.github.mustachejava.DefaultMustacheFactory;
+import com.github.mustachejava.Mustache;
+import com.github.mustachejava.MustacheException;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Optional;
+import com.google.inject.Inject;
+import com.google.inject.Singleton;
+import com.google.inject.name.Named;
 
-import com.google.inject.AbstractModule;
-import com.google.inject.name.Names;
+@Singleton
+public class DeliveryStatusNotificationTemplatesImpl implements DeliveryStatusNotificationTemplates {
 
-public class OpushConfigurationModule extends AbstractModule {
+	private static final String MUSTACHE_EXTENSION = ".mustache";
+	public static final String DELIVERY_RECEIPT_FILE_NAME = "delivery_receipt" + MUSTACHE_EXTENSION;
+	public static final String READ_RECEIPT_FILE_NAME = "read_receipt" + MUSTACHE_EXTENSION;
 	
-	@Override
-	protected void configure() {
-		bind(SyncPermsConfigurationService.class).to(OpushSyncPermsConfigurationService.class);
-		bind(RemoteConsoleConfiguration.class).to(RemoteConsoleConfigurationFileImpl.class);
-		
-		DeliveryStatusNotificationImpl deliveryStatusNotificationImpl = new DeliveryStatusNotificationImpl.Factory().create();
-		bind(DeliveryStatusNotification.class).toInstance(deliveryStatusNotificationImpl);
-		bind(DeliveryStatusNotificationTemplates.class).to(DeliveryStatusNotificationTemplatesImpl.class);
-		
-		OpushEmailConfigurationImpl opushEmailConfigurationImpl = new OpushEmailConfigurationImpl.Factory().create();
-		bind(OpushEmailConfiguration.class).toInstance(opushEmailConfigurationImpl);
-		bind(EmailConfiguration.class).toInstance(opushEmailConfigurationImpl);
-
-		bind(File.class).annotatedWith(Names.named("mustacheTemplatesRoot")).toInstance(new File("/etc/opush"));
+	private final Optional<Mustache> deliveryReceipt;
+	private final Optional<Mustache> readReceipt;
+	
+	@Inject
+	@VisibleForTesting public DeliveryStatusNotificationTemplatesImpl(@Named("mustacheTemplatesRoot") File mustacheTemplatesRoot) {
+		deliveryReceipt = loadTemplate(mustacheTemplatesRoot, DELIVERY_RECEIPT_FILE_NAME);
+		readReceipt = loadTemplate(mustacheTemplatesRoot, READ_RECEIPT_FILE_NAME);
 	}
 
+	private Optional<Mustache> loadTemplate(File mustacheTemplatesRoot, String templateName) {
+		try {
+			DefaultMustacheFactory mustacheFactory = new DefaultMustacheFactory(mustacheTemplatesRoot);
+			return Optional.of(mustacheFactory.compile(templateName));
+		} catch (MustacheException e) {
+			return Optional.absent();
+		}
+	}
+
+	@Override
+	public Optional<Mustache> deliveryReceipt() {
+		return deliveryReceipt;
+	}
+
+	@Override
+	public Optional<Mustache> readReceipt() {
+		return readReceipt;
+	}
 }
