@@ -67,6 +67,8 @@ import org.obm.push.service.PushPublishAndSubscribe;
 import org.obm.push.service.impl.MappingService;
 import org.obm.push.state.IStateMachine;
 import org.obm.push.state.StateMachine;
+import org.obm.push.template.TemplateService;
+import org.obm.push.template.TemplateServiceImpl;
 import org.obm.push.utils.jvm.VMArgumentsUtils;
 import org.obm.servlet.filter.qos.QoSContinuationSupport;
 import org.obm.servlet.filter.qos.QoSFilterModule;
@@ -126,6 +128,7 @@ public class OpushImplModule extends AbstractModule {
 		bind(QoSContinuationSupport.class).to(OpushContinuationSupport.class);
 		bind(String.class).annotatedWith(Names.named("opushPolicyConfigurationFile")).toInstance("/etc/opush/policy.ini");
 		bind(PolicyConfigurationService.class).to(PolicyConfigurationServiceFileImpl.class);
+		bind(TemplateService.class).to(TemplateServiceImpl.class);
 		
 		Multibinder<ISearchSource> searchSources = Multibinder.newSetBinder(binder(), ISearchSource.class);
 		searchSources.addBinding().to(BookSource.class);
