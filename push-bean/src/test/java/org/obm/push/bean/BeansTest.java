@@ -147,6 +147,7 @@ public class BeansTest {
 					.add(VersionUpdate.class) 
 					.add(StatusSummary.class) 
 					.add(MigrationResult.class)
+					.add(DeliveryStatusNotification.class)
 					.build();
 		equalsVerifierUtilsTest.test(list);
 		
