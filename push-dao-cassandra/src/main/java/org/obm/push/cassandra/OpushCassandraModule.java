@@ -33,6 +33,7 @@ package org.obm.push.cassandra;
 
 import org.obm.push.cassandra.dao.CassandraSchemaDao;
 import org.obm.push.cassandra.dao.CassandraStructure.ContactCreation;
+import org.obm.push.cassandra.dao.CassandraStructure.DeliveryStatusNotification;
 import org.obm.push.cassandra.dao.CassandraStructure.FolderSnapshot;
 import org.obm.push.cassandra.dao.CassandraStructure.MonitoredCollection;
 import org.obm.push.cassandra.dao.CassandraStructure.Schema;
@@ -44,6 +45,7 @@ import org.obm.push.cassandra.dao.CassandraStructure.Windowing;
 import org.obm.push.cassandra.dao.CassandraStructure.WindowingIndex;
 import org.obm.push.cassandra.dao.CassandraStructure.WindowingToSnapshot;
 import org.obm.push.cassandra.dao.ContactCreationDaoImpl;
+import org.obm.push.cassandra.dao.DeliveryStatusNotificationDaoImpl;
 import org.obm.push.cassandra.dao.FolderSnapshotDaoCassandraImpl;
 import org.obm.push.cassandra.dao.MonitoredCollectionDaoCassandraImpl;
 import org.obm.push.cassandra.dao.SchemaProducer;
@@ -58,6 +60,7 @@ import org.obm.push.configuration.CassandraConfigurationFileImpl;
 import org.obm.push.service.DeviceDataCleaner;
 import org.obm.push.service.FolderSnapshotDao;
 import org.obm.push.store.ContactCreationDao;
+import org.obm.push.store.DeliveryStatusNotificationDao;
 import org.obm.push.store.MonitoredCollectionDao;
 import org.obm.push.store.SchemaDao;
 import org.obm.push.store.SnapshotDao;
@@ -82,6 +85,7 @@ public class OpushCassandraModule extends AbstractModule {
 		.put(FolderSnapshotDaoCassandraImpl.class, FolderSnapshot.TABLE)
 		.put(WindowingToSnapshotDaoCassandraImpl.class, WindowingToSnapshot.TABLE)
 		.put(CassandraSchemaDao.class, Schema.TABLE)
+		.put(DeliveryStatusNotificationDaoImpl.class, DeliveryStatusNotification.TABLE)
 		.build();
 	
 	@Override
@@ -106,6 +110,7 @@ public class OpushCassandraModule extends AbstractModule {
 		bind(ContactCreationDao.class).to(ContactCreationDaoImpl.class);
 		bind(FolderSnapshotDao.class).to(FolderSnapshotDaoCassandraImpl.class);
 		bind(WindowingToSnapshotDao.class).to(WindowingToSnapshotDaoCassandraImpl.class);
+		bind(DeliveryStatusNotificationDao.class).to(DeliveryStatusNotificationDaoImpl.class);
 		bind(DaoTables.class).toProvider(new Provider<DaoTables>() {
 
 			@Override

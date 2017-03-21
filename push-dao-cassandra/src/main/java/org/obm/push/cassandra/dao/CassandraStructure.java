@@ -194,4 +194,17 @@ public interface CassandraStructure {
 			}
 		}
 	}
+	
+	interface DeliveryStatusNotification {
+		Table TABLE = Table.of("delivery_status_notification");
+		String[] PK = { Columns.USER, Columns.SERVER_ID };
+		
+		interface Columns {
+			String USER = "user";
+			String SERVER_ID = "server_id";
+			String DELIVERY = "delivery";
+			String READ_RECEIPT = "read_receipt";
+		}
+		
+	}
 }
