@@ -272,6 +272,21 @@ public class MSEmailDecoderTest {
 		
 		assertThat(email.getMessageClass()).isEqualTo(MSMessageClass.NOTE_SMIME);
 	}
+	
+	@Test
+	public void parseMessageClassNoteReportNDR() throws Exception {
+		Document doc = DOMUtils.parse(
+			"<ApplicationData>" +
+				"<From> &lt;from@thilaire.lng.org&gt;, &lt;from2@thilaire.lng.org&gt; </From>" +
+				"<To> &lt;to@thilaire.lng.org&gt;, &lt;to2@thilaire.lng.org&gt; </To>" +
+				"<Subject>email subject</Subject>" +
+				"<MessageClass>Report.IPM.Note.NDR</MessageClass>" +
+			"</ApplicationData>");
+
+		MSEmail email= decoder.decode(doc.getDocumentElement());
+		
+		assertThat(email.getMessageClass()).isEqualTo(MSMessageClass.NOTE_REPORT_NDR);
+	}
 
 	@Test
 	public void parseImportanceHigh() throws Exception {

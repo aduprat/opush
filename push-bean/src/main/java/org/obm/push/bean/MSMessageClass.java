@@ -31,8 +31,10 @@
  * ***** END LICENSE BLOCK ***** */
 package org.obm.push.bean;
 
+import java.util.Locale;
 import java.util.Map;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 
@@ -41,30 +43,62 @@ import com.google.common.collect.ImmutableMap.Builder;
  */
 public enum MSMessageClass {
 	
-	NOTE("IPM.Note"),
-	NOTE_RULES_OOFTEMPLATE_MS("IPM.Note.Rules.OofTemplate.Microsoft"),
-	NOTE_SMIME("IPM.Note.SMIME"),
-	NOTE_SMIME_MULTIPART_SIGNED("IPM.Note.SMIME.MultipartSigned"),
-	SCHEDULE_MEETING_REQUEST("IPM.Schedule.Meeting.Request"),
-	SCHEDULE_MEETING_CANCELED("IPM.Schedule.Meeting.Canceled"),
-	SCHEDULE_MEETING_RESP_POS("IPM.Schedule.Meeting.Resp.Pos"),
-	SCHEDULE_MEETING_RESP_TENT("IPM.Schedule.Meeting.Resp.Tent"),
-	SCHEDULE_MEETING_RESP_NEG("IPM.Schedule.Meeting.Resp.Neg"),
-	POST("IPM.Post");
+	NOTE("ipm.note", false),
+	NOTE_RULES_OOFTEMPLATE_MS("ipm.note.rules.ooftemplate.microsoft", false),
+	NOTE_SMIME("ipm.note.smime", false),
+	NOTE_SMIME_MULTIPART_SIGNED("ipm.note.smime.multipartsigned", false),
+	SCHEDULE_MEETING_REQUEST("ipm.schedule.meeting.request", false),
+	SCHEDULE_MEETING_CANCELED("ipm.schedule.meeting.canceled", false),
+	SCHEDULE_MEETING_RESP_POS("ipm.schedule.meeting.resp.pos", false),
+	SCHEDULE_MEETING_RESP_TENT("ipm.schedule.meeting.resp.tent", false),
+	SCHEDULE_MEETING_RESP_NEG("ipm.schedule.meeting.resp.neg", false),
+	POST("ipm.post", false),
+
+	/*
+	 * Reports:
+	 * - NDR: non-delivery report
+	 * - DR: delivery report
+	 * - DELAYED: delivery receipt for a delayed message
+	 * - IPNRN: read receipt
+	 * - IPNNRN: non-read receipt
+	 */
+	NOTE_REPORT_NDR("report.ipm.note.ndr", true),
+	NOTE_REPORT_DR("report.ipm.note.dr", true),
+	NOTE_REPORT_DELAYED("report.ipm.note.delayed", true),
+	NOTE_REPORT_IPNRN("report.ipm.note.ipnrn", true),
+	NOTE_REPORT_IPNNRN("report.ipm.note.ipnnrn", true),
+	SCHEDULE_MEETING_REQUEST_REPORT_NDR("report.ipm.schedule. meeting.request.ndr", true),
+	SCHEDULE_MEETING_RESP_POS_REPORT_NDR("report.ipm.schedule.meeting.resp.pos.ndr", true),
+	SCHEDULE_MEETING_RESP_TENT_REPORT_NDR("report.ipm.schedule.meeting.resp.tent.ndr", true),
+	SCHEDULE_MEETING_CANCELED_REPORT_NDR("report.ipm.schedule.meeting.canceled.ndr", true),
+	NOTE_SMIME_REPORT_NDR("report.ipm.note.smime.ndr", true),
+	NOTE_SMIME_REPORT_DR("report.ipm.note.smime.dr", true),
+	NOTE_SMIME_MULTIPARTSIGNED_NDR("report.ipm.note.smime.multipartsigned.ndr", true),
+	NOTE_SMIME_MULTIPARTSIGNED_DR("report.ipm.note.smime.multipartsigned.dr", true);
 	
 	private final String value;
+	private final boolean report;
 
-	private MSMessageClass(String value) {
+	private MSMessageClass(String value, boolean report) {
 		this.value = value;
+		this.report = report;
 	}
 	
 	public String specificationValue() {
 		return value;
 	}
 
+	public boolean isReport() {
+		return report;
+	}
+
 	public static MSMessageClass fromSpecificationValue(String specificationValue) {
-    	if (specValueToEnum.containsKey(specificationValue)) {
-    		return specValueToEnum.get(specificationValue);
+		if (Strings.isNullOrEmpty(specificationValue)) {
+			return null;
+		}
+    	String lowerCaseSpecificationValue = specificationValue.toLowerCase(Locale.US);
+		if (specValueToEnum.containsKey(lowerCaseSpecificationValue)) {
+    		return specValueToEnum.get(lowerCaseSpecificationValue);
     	}
 		return null;
     }

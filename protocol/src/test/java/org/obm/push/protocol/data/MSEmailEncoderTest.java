@@ -188,7 +188,7 @@ public class MSEmailEncoderTest {
 						"<AirSyncBase:EstimatedDataSize>10</AirSyncBase:EstimatedDataSize>" +
 						"<AirSyncBase:Data><![CDATA[text]]></AirSyncBase:Data>" +
 					"</AirSyncBase:Body>" +
-					"<Email:MessageClass>IPM.Note</Email:MessageClass>" +
+					"<Email:MessageClass>ipm.note</Email:MessageClass>" +
 					"<Email:ContentClass>urn:content-classes:message</Email:ContentClass>" +
 					"<Email:InternetCPID>65001</Email:InternetCPID>" +
 					"<AirSyncBase:NativeBodyType>1</AirSyncBase:NativeBodyType>" +
