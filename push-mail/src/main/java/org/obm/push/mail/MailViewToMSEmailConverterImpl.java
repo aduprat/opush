@@ -75,6 +75,7 @@ public class MailViewToMSEmailConverterImpl implements MailViewToMSEmailConverte
 	private static final Logger logger = LoggerFactory.getLogger(MailViewToMSEmailConverterImpl.class);
 	private static final Charset DEFAULT_CHARSET = Charsets.UTF_8;
 	private static final String CONTENT_TYPE_RFC_822 = "message/rfc822";
+	private static final String MULTIPART_REPORT = "multipart/report";
 
 	private final MSEmailHeaderConverter emailHeaderConverter;
 	private final EventService eventService;
@@ -98,7 +99,7 @@ public class MailViewToMSEmailConverterImpl implements MailViewToMSEmailConverte
 		
 		MSMeetingRequest msMeetingRequest = convertICalendar(emailView);
 		msEmailBuilder.meetingRequest(fillMSEventUid(msMeetingRequest, userDataRequest));
-		msEmailBuilder.messageClass(convertInvitationType(emailView));
+		msEmailBuilder.messageClass(convertMessageClass(emailView));
 		msEmailBuilder.subject(convertSubject(emailView));
 		return UidMSEmail.uidBuilder()
 				.email(msEmailBuilder.build())
@@ -215,7 +216,7 @@ public class MailViewToMSEmailConverterImpl implements MailViewToMSEmailConverte
 		return null;
 	}
 
-	private MSMessageClass convertInvitationType(EmailView emailView) {
+	private MSMessageClass convertMessageClass(EmailView emailView) {
 		if (isSupportedICalendar(emailView)) {
 			if (emailView.getInvitationType() == EmailViewInvitationType.REQUEST) {
 				return MSMessageClass.SCHEDULE_MEETING_REQUEST;
@@ -226,6 +227,13 @@ public class MailViewToMSEmailConverterImpl implements MailViewToMSEmailConverte
 			if (emailView.getInvitationType() == EmailViewInvitationType.REPLY) {
 				return inferInvitationTypeFromReply(emailView);
 			}
+		}
+		return convertToReportMessageClass(emailView.getMimeType());
+	}
+
+	private MSMessageClass convertToReportMessageClass(String mimeType) {
+		if (mimeType.contains(MULTIPART_REPORT)) {
+			return MSMessageClass.NOTE_REPORT_DR;
 		}
 		return null;
 	}

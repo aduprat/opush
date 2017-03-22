@@ -44,8 +44,6 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 
-import net.fortuna.ical4j.data.ParserException;
-
 import org.easymock.IMocksControl;
 import org.junit.Before;
 import org.junit.Test;
@@ -76,6 +74,8 @@ import org.obm.push.utils.UserEmailParserUtils;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
+
+import net.fortuna.ical4j.data.ParserException;
 
 public class MailViewToMSEmailConverterImplTest {
 
@@ -433,7 +433,7 @@ public class MailViewToMSEmailConverterImplTest {
 		MSEmail convertedMSEmail = makeConversionFromEmailViewFixture();
 		
 		assertThat(convertedMSEmail.getMeetingRequest()).isNull();
-		assertThat(convertedMSEmail.getMessageClass()).isEqualTo(MSMessageClass.NOTE);
+		assertThat(convertedMSEmail.getMessageClass()).isEqualTo(MSMessageClass.NOTE_REPORT_DR);
 	}
 	
 	@Test
@@ -463,7 +463,7 @@ public class MailViewToMSEmailConverterImplTest {
 		verify(iCalendar, iCalendarEvent);
 		
 		assertThat(convertedMSEmail.getMeetingRequest()).isNull();
-		assertThat(convertedMSEmail.getMessageClass()).isEqualTo(MSMessageClass.NOTE);
+		assertThat(convertedMSEmail.getMessageClass()).isEqualTo(MSMessageClass.NOTE_REPORT_DR);
 	}
 	
 	@Test
@@ -472,7 +472,7 @@ public class MailViewToMSEmailConverterImplTest {
 		
 		MSEmail convertedMSEmail = makeConversionFromEmailViewFixture();
 		
-		assertThat(convertedMSEmail.getMessageClass()).isEqualTo(MSMessageClass.NOTE);
+		assertThat(convertedMSEmail.getMessageClass()).isEqualTo(MSMessageClass.NOTE_REPORT_DR);
 	}
 	
 	@Test
@@ -491,6 +491,15 @@ public class MailViewToMSEmailConverterImplTest {
 		assertThat(convertedMSEmail.getMessageClass()).isEqualTo(MSMessageClass.SCHEDULE_MEETING_CANCELED);
 	}
 	
+	@Test
+	public void messageClassMessageShouldBeReportWhenMultipartReportMimeType() throws IOException, ParserException, DaoException {
+		emailViewFixture.attachmentInputStream = null;
+		
+		MSEmail convertedMSEmail = makeConversionFromEmailViewFixture();
+		
+		assertThat(convertedMSEmail.getMessageClass()).isEqualTo(MSMessageClass.NOTE_REPORT_DR);
+	}
+
 	@Test(expected=EmailViewBuildException.class)
 	public void testExpectEmailViewExceptionTruncated() throws IOException, ParserException, DaoException {
 		emailViewFixture.truncated = null;
@@ -599,6 +608,7 @@ public class MailViewToMSEmailConverterImplTest {
 			.invitationType(emailViewFixture.invitationType)
 			.bodyType(emailViewFixture.bodyType)
 			.truncated(emailViewFixture.truncated)
+			.mimeType("multipart/report; report-type=disposition-notification;")
 			.build();
 	}
 
