@@ -65,12 +65,14 @@ import org.obm.push.exception.activesync.ProcessingEmailException;
 import org.obm.push.exception.activesync.StoreEmailException;
 import org.obm.push.mail.bean.EmailReader;
 import org.obm.push.mail.bean.MessageSet;
+import org.obm.push.mail.report.DeliveryReceiptMessage;
 import org.obm.push.protocol.bean.CollectionId;
 import org.obm.push.service.AuthenticationService;
 import org.obm.push.service.DateService;
 import org.obm.push.service.FolderSnapshotDao;
 import org.obm.push.service.SmtpSender;
 import org.obm.push.service.impl.MappingService;
+import org.obm.push.store.DeliveryStatusNotificationDao;
 import org.obm.push.store.WindowingDao;
 import org.obm.push.store.WindowingToSnapshotDao;
 
@@ -92,6 +94,8 @@ public class MailBackendTest {
 	private DateService dateService;
 	private FolderSnapshotDao folderSnapshotDao;
 	private WindowingToSnapshotDao windowingToSnapshotDao;
+	private DeliveryReceiptMessage deliveryReceiptMessage;
+	private DeliveryStatusNotificationDao deliveryStatusNotificationDao;
 
 	private IMocksControl mocksControl;
 	private MailBackend testee;
@@ -112,10 +116,13 @@ public class MailBackendTest {
 		emailConfiguration = mocksControl.createMock(OpushEmailConfiguration.class);
 		dateService = mocksControl.createMock(DateService.class);
 		folderSnapshotDao = mocksControl.createMock(FolderSnapshotDao.class);
+		deliveryReceiptMessage = mocksControl.createMock(DeliveryReceiptMessage.class);
+		deliveryStatusNotificationDao = mocksControl.createMock(DeliveryStatusNotificationDao.class);
 		
 		testee = new MailBackendImpl(mailboxService, null, null, null, null, null,  
 				mappingService, null, null, null, windowingDao, windowingToSnapshotDao, 
-				smtpSender, emailConfiguration, dateService, folderSnapshotDao);
+				smtpSender, emailConfiguration, dateService, folderSnapshotDao,
+				deliveryReceiptMessage, deliveryStatusNotificationDao);
 	}
 	
 	@Test
@@ -140,7 +147,7 @@ public class MailBackendTest {
 		MailBackend mailBackend = new MailBackendImpl(mailboxService, authenticationService, new Mime4jUtils(),
 				mockOpushConfiguration(), null, null, mappingService, null, null,
 				null, windowingDao, windowingToSnapshotDao, smtpSender, emailConfiguration,
-				dateService, folderSnapshotDao);
+				dateService, folderSnapshotDao, deliveryReceiptMessage, deliveryStatusNotificationDao);
 
 		mocksControl.replay();
 		

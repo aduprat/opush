@@ -53,6 +53,7 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.IOUtils;
 import org.apache.james.mime4j.MimeException;
 import org.apache.james.mime4j.dom.Message;
 import org.obm.breakdownduration.bean.Watch;
@@ -64,6 +65,7 @@ import org.obm.push.bean.Address;
 import org.obm.push.bean.AnalysedSyncCollection;
 import org.obm.push.bean.BodyPreference;
 import org.obm.push.bean.BreakdownGroups;
+import org.obm.push.bean.DeliveryStatusNotification;
 import org.obm.push.bean.DeviceId;
 import org.obm.push.bean.FilterType;
 import org.obm.push.bean.FolderType;
@@ -71,12 +73,14 @@ import org.obm.push.bean.IApplicationData;
 import org.obm.push.bean.ItemSyncState;
 import org.obm.push.bean.MSAttachementData;
 import org.obm.push.bean.MSEmailBodyType;
+import org.obm.push.bean.MSMessageClass;
 import org.obm.push.bean.MimeSupport;
 import org.obm.push.bean.PIMDataType;
 import org.obm.push.bean.ServerId;
 import org.obm.push.bean.SnapshotKey;
 import org.obm.push.bean.SyncCollectionOptions;
 import org.obm.push.bean.SyncKey;
+import org.obm.push.bean.User;
 import org.obm.push.bean.UserDataRequest;
 import org.obm.push.bean.change.WindowingChanges;
 import org.obm.push.bean.change.WindowingKey;
@@ -87,6 +91,7 @@ import org.obm.push.bean.change.hierarchy.FolderCreateRequest;
 import org.obm.push.bean.change.hierarchy.MailboxPath;
 import org.obm.push.bean.change.item.ItemChange;
 import org.obm.push.bean.change.item.MSEmailChanges;
+import org.obm.push.bean.ms.MSEmail;
 import org.obm.push.bean.ms.UidMSEmail;
 import org.obm.push.configuration.OpushConfiguration;
 import org.obm.push.configuration.OpushEmailConfiguration;
@@ -121,6 +126,7 @@ import org.obm.push.mail.conversation.EmailView;
 import org.obm.push.mail.conversation.EmailViewAttachment;
 import org.obm.push.mail.exception.FilterTypeChangedException;
 import org.obm.push.mail.mime.MimeAddress;
+import org.obm.push.mail.report.DeliveryReceiptMessage;
 import org.obm.push.mail.transformer.Transformer.TransformersFactory;
 import org.obm.push.protocol.bean.CollectionId;
 import org.obm.push.service.AuthenticationService;
@@ -128,6 +134,7 @@ import org.obm.push.service.DateService;
 import org.obm.push.service.FolderSnapshotDao;
 import org.obm.push.service.SmtpSender;
 import org.obm.push.service.impl.MappingService;
+import org.obm.push.store.DeliveryStatusNotificationDao;
 import org.obm.push.store.SnapshotDao;
 import org.obm.push.store.WindowingDao;
 import org.obm.push.store.WindowingToSnapshotDao;
@@ -141,6 +148,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Charsets;
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
@@ -175,6 +183,8 @@ public class MailBackendImpl extends OpushBackend implements MailBackend {
 	private final SmtpSender smtpSender;
 	private final DateService dateService;
 	private final FolderSnapshotDao folderSnapshotDao;
+	private final DeliveryReceiptMessage deliveryReceiptMessage;
+	private final DeliveryStatusNotificationDao deliveryStatusNotificationDao;
 
 	private final OpushEmailConfiguration emailConfiguration;
 
@@ -193,7 +203,9 @@ public class MailBackendImpl extends OpushBackend implements MailBackend {
 			SmtpSender smtpSender, 
 			OpushEmailConfiguration emailConfiguration,
 			DateService dateService,
-			FolderSnapshotDao folderSnapshotDao)  {
+			FolderSnapshotDao folderSnapshotDao,
+			DeliveryReceiptMessage deliveryReceiptMessage,
+			DeliveryStatusNotificationDao deliveryStatusNotificationDao)  {
 
 		super(mappingService);
 		this.mailboxService = mailboxService;
@@ -211,6 +223,8 @@ public class MailBackendImpl extends OpushBackend implements MailBackend {
 		this.emailConfiguration = emailConfiguration;
 		this.dateService = dateService;
 		this.folderSnapshotDao = folderSnapshotDao;
+		this.deliveryReceiptMessage = deliveryReceiptMessage;
+		this.deliveryStatusNotificationDao = deliveryStatusNotificationDao;
 	}
 
 	@Override
@@ -305,6 +319,8 @@ public class MailBackendImpl extends OpushBackend implements MailBackend {
 		MSEmailChanges serverItemChanges = emailChangesFetcher.fetch(udr, collection.getCollectionId(),
 				path, collection.getOptions(), pendingChanges);
 		
+		processDeliveryReceipts(udr, folder, serverItemChanges.getItemChanges());
+		
 		return DataDelta.builder()
 				.changes(serverItemChanges.getItemChanges())
 				.deletions(serverItemChanges.getItemDeletions())
@@ -312,6 +328,62 @@ public class MailBackendImpl extends OpushBackend implements MailBackend {
 				.syncKey(newSyncKey)
 				.moreAvailable(windowingDao.hasPendingChanges(key.withSyncKey(newSyncKey)))
 				.build();
+	}
+
+	@VisibleForTesting void processDeliveryReceipts(UserDataRequest udr, Folder folder, List<ItemChange> itemChanges) {
+		if (folder.getFolderType().equals(FolderType.DEFAULT_INBOX_FOLDER)) {
+			for (ItemChange itemChange : newEmails(itemChanges)) {
+				processDeliveryReceipt(udr, itemChange);
+			}
+		}
+	}
+
+	private void processDeliveryReceipt(UserDataRequest udr, ItemChange itemChange) {
+		MSEmail msEmail = (MSEmail) itemChange.getData();
+		Optional<Message> deliveryReceipt = deliveryReceiptMessage.from(udr.getUser(), msEmail);
+		ServerId serverId = itemChange.getServerId();
+		if (shouldSendDeliveryReceipt(udr, msEmail.getMessageClass(), serverId, deliveryReceipt)) {
+			try {
+				boolean saveInSent = true;
+				sendEmail(udr, IOUtils.toByteArray(new Mime4jUtils().toInputStream(deliveryReceipt.get())), saveInSent);
+				storeDeliveryReceiptFlag(udr.getUser(), serverId);
+			} catch (ProcessingEmailException | IOException e) {
+				logger.warn("Error whiling sending delivery receipt", e);
+			}
+		}
+	}
+
+	@VisibleForTesting ImmutableList<ItemChange> newEmails(List<ItemChange> itemChanges) {
+		return FluentIterable.from(itemChanges)
+			.filter(new Predicate<ItemChange>() {
+
+				@Override
+				public boolean apply(ItemChange itemChange) {
+					return itemChange.isNew();
+				}
+			})
+			.filter(new Predicate<ItemChange>() {
+
+				@Override
+				public boolean apply(ItemChange itemChange) {
+					return itemChange.isMSEmail();
+				}
+			})
+			.toList();
+	}
+
+	private boolean shouldSendDeliveryReceipt(UserDataRequest udr, MSMessageClass msMessageClass, ServerId serverId, Optional<Message> deliveryReceipt) {
+		return deliveryReceipt.isPresent()
+				&& !msMessageClass.isReport()
+				&& !deliveryStatusNotificationDao.hasAlreadyBeenDelivered(udr.getUser(), serverId);
+	}
+
+	private void storeDeliveryReceiptFlag(User user, ServerId serverId) {
+		deliveryStatusNotificationDao.insertStatus(DeliveryStatusNotification.builder()
+				.user(user)
+				.serverId(serverId)
+				.delivery(true)
+				.build());
 	}
 
 	private UUID takeSnapshot(UserDataRequest udr, CollectionId collectionId, 

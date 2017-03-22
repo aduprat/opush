@@ -42,6 +42,7 @@ import static org.obm.DateUtils.date;
 import static org.obm.configuration.EmailConfiguration.IMAP_INBOX_NAME;
 import static org.obm.push.mail.MSMailTestsUtils.loadEmail;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.Date;
@@ -52,6 +53,8 @@ import java.util.UUID;
 import javax.mail.internet.InternetAddress;
 
 import org.apache.james.mime4j.dom.Message;
+import org.apache.james.mime4j.message.BasicBodyFactory;
+import org.apache.james.mime4j.message.HeaderImpl;
 import org.easymock.IMocksControl;
 import org.junit.Before;
 import org.junit.Test;
@@ -61,11 +64,14 @@ import org.obm.push.bean.Address;
 import org.obm.push.bean.AnalysedSyncCollection;
 import org.obm.push.bean.BodyPreference;
 import org.obm.push.bean.Credentials;
+import org.obm.push.bean.DeliveryStatusNotification;
 import org.obm.push.bean.Device;
 import org.obm.push.bean.DeviceId;
 import org.obm.push.bean.FilterType;
 import org.obm.push.bean.FolderType;
 import org.obm.push.bean.ItemSyncState;
+import org.obm.push.bean.MSContact;
+import org.obm.push.bean.MSMessageClass;
 import org.obm.push.bean.PIMDataType;
 import org.obm.push.bean.ServerId;
 import org.obm.push.bean.SnapshotKey;
@@ -96,6 +102,7 @@ import org.obm.push.mail.bean.EmailReader;
 import org.obm.push.mail.bean.MailboxFolder;
 import org.obm.push.mail.bean.MailboxFolders;
 import org.obm.push.mail.bean.Snapshot;
+import org.obm.push.mail.report.DeliveryReceiptMessage;
 import org.obm.push.mail.transformer.Transformer.TransformersFactory;
 import org.obm.push.protocol.bean.CollectionId;
 import org.obm.push.service.AuthenticationService;
@@ -103,6 +110,7 @@ import org.obm.push.service.DateService;
 import org.obm.push.service.FolderSnapshotDao;
 import org.obm.push.service.SmtpSender;
 import org.obm.push.service.impl.MappingService;
+import org.obm.push.store.DeliveryStatusNotificationDao;
 import org.obm.push.store.SnapshotDao;
 import org.obm.push.store.WindowingDao;
 import org.obm.push.store.WindowingToSnapshotDao;
@@ -118,12 +126,12 @@ import com.google.common.primitives.Ints;
 public class MailBackendImplTest {
 
 	private UserDataRequest udr;
-	private CollectionId collectionId;
-	private MailboxPath collectionPath;
+	private CollectionId collectionId, inboxId;
+	private MailboxPath collectionPath, inboxPath;
 	private DeviceId devId;
 	private Device device;
 	private User user;
-	private Folder folder;
+	private Folder folder, inbox;
 
 	private IMocksControl control;
 	private MailboxService mailboxService;
@@ -140,13 +148,17 @@ public class MailBackendImplTest {
 	private AuthenticationService authenticationService;
 	private FolderSnapshotDao folderSnapshotDao;
 	private WindowingToSnapshotDao windowingToSnapshotDao;
+	private DeliveryReceiptMessage deliveryReceiptMessage;
+	private DeliveryStatusNotificationDao deliveryStatusNotificationDao;
 
 	private MailBackendImpl testee;
 
 	@Before
 	public void setup() {
 		collectionId = CollectionId.of(13411);
+		inboxId = CollectionId.of(2);
 		collectionPath = MailboxPath.of("mailboxCollectionPath");
+		inboxPath = MailboxPath.of("inbox");
 		user = Factory.create().createUser("user@domain", "user@domain", "user@domain");
 		devId = new DeviceId("my phone");
 		device = new Device.Factory().create(null, "MultipleCalendarsDevice", "iOs 5", devId, null);
@@ -156,6 +168,13 @@ public class MailBackendImplTest {
 			.backendId(collectionPath)
 			.displayName(collectionPath.getPath())
 			.folderType(FolderType.USER_CREATED_EMAIL_FOLDER)
+			.parentBackendIdOpt(Optional.<BackendId>absent())
+			.build();
+		inbox = Folder.builder()
+			.collectionId(inboxId)
+			.backendId(inboxPath)
+			.displayName(inboxPath.getPath())
+			.folderType(FolderType.DEFAULT_INBOX_FOLDER)
 			.parentBackendIdOpt(Optional.<BackendId>absent())
 			.build();
 		
@@ -175,10 +194,13 @@ public class MailBackendImplTest {
 		emailConfiguration = control.createMock(OpushEmailConfiguration.class);
 		authenticationService = control.createMock(AuthenticationService.class);
 		folderSnapshotDao = control.createMock(FolderSnapshotDao.class);
+		deliveryReceiptMessage = control.createMock(DeliveryReceiptMessage.class);
+		deliveryStatusNotificationDao = control.createMock(DeliveryStatusNotificationDao.class);
 		
-		testee = new MailBackendImpl(mailboxService, authenticationService, null, null, snapshotDao,
+		testee = new MailBackendImpl(mailboxService, authenticationService, new Mime4jUtils(), null, snapshotDao,
 				serverEmailChangesBuilder, mappingService, msEmailFetcher, transformersFactory, mailBackendSyncDataFactory,
-				windowingDao, windowingToSnapshotDao, smtpSender, emailConfiguration, dateService, folderSnapshotDao);
+				windowingDao, windowingToSnapshotDao, smtpSender, emailConfiguration, dateService, folderSnapshotDao,
+				deliveryReceiptMessage, deliveryStatusNotificationDao);
 	}
 	
 	@Test
@@ -1137,5 +1159,145 @@ public class MailBackendImplTest {
 		control.verify();
 		assertThat(internetAddresse.toString()).isEqualTo("user@domain");
 	}
+
+	@Test
+	public void newEmailsShouldReturnOnlyNewEmails() {
+		MSEmail itemChangeData = control.createMock(MSEmail.class);
+		ItemChange itemChange = ItemChange.builder().serverId(collectionId.serverId(245)).data(itemChangeData).isNew(true).build();
+		MSEmail itemChangeData2 = control.createMock(MSEmail.class);
+		ItemChange itemChange2 = ItemChange.builder().serverId(collectionId.serverId(246)).data(itemChangeData2).build();
+		MSEmail itemChangeData3 = control.createMock(MSEmail.class);
+		ItemChange itemChange3 = ItemChange.builder().serverId(collectionId.serverId(247)).data(itemChangeData3).isNew(true).build();
+		ImmutableList<ItemChange> changes = ImmutableList.of(itemChange, itemChange2, itemChange3);
+		
+		control.replay();
+		ImmutableList<ItemChange> itemChanges = testee.newEmails(changes);
+		control.verify();
+		
+		assertThat(itemChanges).contains(itemChange, itemChange3);
+	}
+
+	@Test
+	public void newEmailsShouldReturnOnlyEmails() {
+		MSEmail itemChangeData = control.createMock(MSEmail.class);
+		ItemChange itemChange = ItemChange.builder().serverId(collectionId.serverId(245)).data(itemChangeData).isNew(true).build();
+		MSContact itemChangeData2 = control.createMock(MSContact.class);
+		ItemChange itemChange2 = ItemChange.builder().serverId(collectionId.serverId(246)).data(itemChangeData2).build();
+		MSEmail itemChangeData3 = control.createMock(MSEmail.class);
+		ItemChange itemChange3 = ItemChange.builder().serverId(collectionId.serverId(247)).data(itemChangeData3).isNew(true).build();
+		ImmutableList<ItemChange> changes = ImmutableList.of(itemChange, itemChange2, itemChange3);
+		
+		control.replay();
+		ImmutableList<ItemChange> itemChanges = testee.newEmails(changes);
+		control.verify();
+		
+		assertThat(itemChanges).contains(itemChange, itemChange3);
+	}
 	
+	@Test
+	@SuppressWarnings("unchecked")
+	public void sendDeliveryReceiptsShouldSendDeliveryReceiptWhenNotAlreadySent() throws Exception {
+		Message message = control.createMock(Message.class);
+		expect(message.getHeader())
+			.andReturn(new HeaderImpl());
+		expect(message.getBody())
+			.andReturn(new BasicBodyFactory().textBody("my text"));
+		expect(message.getContentTransferEncoding())
+			.andReturn("8BIT");
+		message.dispose();
+		expectLastCall();
+		
+		MSEmail itemChangeData = control.createMock(MSEmail.class);
+		expect(itemChangeData.getMessageClass()).andReturn(MSMessageClass.NOTE);
+		ServerId serverId = collectionId.serverId(245);
+		ItemChange itemChange = ItemChange.builder().serverId(serverId).data(itemChangeData).isNew(true).build();
+		expect(deliveryReceiptMessage.from(user, itemChangeData))
+			.andReturn(Optional.of(message));
+		expect(deliveryStatusNotificationDao.hasAlreadyBeenDelivered(udr.getUser(), itemChange.getServerId()))
+			.andReturn(false);
+		deliveryStatusNotificationDao.insertStatus(DeliveryStatusNotification.builder()
+				.user(user)
+				.serverId(serverId)
+				.delivery(true)
+				.build());
+		expectLastCall();
+		
+		ImmutableList<ItemChange> changes = ImmutableList.of(itemChange);
+		
+		expect(authenticationService.getUserEmail(udr))
+			.andReturn(udr.getUser().getEmail());
+		
+		smtpSender.sendEmail(eq(udr), 
+				eq(new Address(udr.getUser().getEmail())), 
+				anyObject(Set.class), 
+				anyObject(Set.class), 
+				anyObject(Set.class), 
+				anyObject(ByteArrayInputStream.class));
+		expectLastCall();
+		
+		control.replay();
+		testee.processDeliveryReceipts(udr, inbox, changes);
+		control.verify();
+	}
+	
+	@Test
+	public void sendDeliveryReceiptsShouldNotSendDeliveryReceiptWhenAlreadySent() throws Exception {
+		Message message = control.createMock(Message.class);
+		MSEmail itemChangeData = control.createMock(MSEmail.class);
+		expect(itemChangeData.getMessageClass()).andReturn(MSMessageClass.NOTE);
+		ItemChange itemChange = ItemChange.builder().serverId(collectionId.serverId(245)).data(itemChangeData).isNew(true).build();
+		expect(deliveryReceiptMessage.from(user, itemChangeData))
+			.andReturn(Optional.of(message));
+		expect(deliveryStatusNotificationDao.hasAlreadyBeenDelivered(udr.getUser(), itemChange.getServerId()))
+			.andReturn(true);
+		
+		ImmutableList<ItemChange> changes = ImmutableList.of(itemChange);
+		
+		control.replay();
+		testee.processDeliveryReceipts(udr, inbox, changes);
+		control.verify();
+	}
+	
+	@Test
+	public void sendDeliveryReceiptsShouldNotSendDeliveryReceiptWhenMessageIsAReport() throws Exception {
+		Message message = control.createMock(Message.class);
+		MSEmail itemChangeData = control.createMock(MSEmail.class);
+		expect(itemChangeData.getMessageClass()).andReturn(MSMessageClass.NOTE_REPORT_DR);
+		ItemChange itemChange = ItemChange.builder().serverId(collectionId.serverId(245)).data(itemChangeData).isNew(true).build();
+		expect(deliveryReceiptMessage.from(user, itemChangeData))
+			.andReturn(Optional.of(message));
+		
+		ImmutableList<ItemChange> changes = ImmutableList.of(itemChange);
+		
+		control.replay();
+		testee.processDeliveryReceipts(udr, inbox, changes);
+		control.verify();
+	}
+	
+	@Test
+	public void sendDeliveryReceiptsShouldNotSendDeliveryReceiptWhenNoMessage() throws Exception {
+		MSEmail itemChangeData = control.createMock(MSEmail.class);
+		expect(itemChangeData.getMessageClass()).andReturn(MSMessageClass.NOTE);
+		ItemChange itemChange = ItemChange.builder().serverId(collectionId.serverId(245)).data(itemChangeData).isNew(true).build();
+		expect(deliveryReceiptMessage.from(user, itemChangeData))
+			.andReturn(Optional.<Message> absent());
+		
+		ImmutableList<ItemChange> changes = ImmutableList.of(itemChange);
+		
+		control.replay();
+		testee.processDeliveryReceipts(udr, inbox, changes);
+		control.verify();
+	}
+	
+	@Test
+	public void sendDeliveryReceiptsShouldNotSendDeliveryReceiptWhenNotInbox() throws Exception {
+		MSEmail itemChangeData = control.createMock(MSEmail.class);
+		ItemChange itemChange = ItemChange.builder().serverId(collectionId.serverId(245)).data(itemChangeData).isNew(true).build();
+		
+		ImmutableList<ItemChange> changes = ImmutableList.of(itemChange);
+		
+		control.replay();
+		testee.processDeliveryReceipts(udr, folder, changes);
+		control.verify();
+	}
 }
