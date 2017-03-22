@@ -41,9 +41,6 @@ import java.nio.charset.UnsupportedCharsetException;
 import java.util.Collection;
 import java.util.List;
 
-import net.fortuna.ical4j.data.ParserException;
-import net.fortuna.ical4j.model.property.Organizer;
-
 import org.apache.commons.io.IOUtils;
 import org.obm.icalendar.ICalendar;
 import org.obm.push.bean.BodyPreference;
@@ -75,6 +72,9 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.io.ByteStreams;
 
+import net.fortuna.ical4j.data.ParserException;
+import net.fortuna.ical4j.model.property.Organizer;
+
 public class EmailViewPartsFetcherImpl implements EmailViewPartsFetcher {
 
 	private static final Logger logger = LoggerFactory.getLogger(EmailViewPartsFetcherImpl.class);
@@ -105,12 +105,13 @@ public class EmailViewPartsFetcherImpl implements EmailViewPartsFetcher {
 	public EmailView fetch(long uid, BodyPreferencePolicy bodyPreferencePolicy) throws EmailViewPartsFetcherException, EmailViewBuildException {
 		try {
 			EmailMetadata emailViewResponse = mailboxService.fetchEmailMetadata(udr, path, uid);
+			MimeMessage mimeMessage = emailViewResponse.getMimeMessage();
 			Builder emailViewBuilder = EmailView.builder()
 					.uid(uid)
 					.flags(emailViewResponse.getFlags())
-					.envelope(emailViewResponse.getEnvelope());
+					.envelope(emailViewResponse.getEnvelope())
+					.mimeType(mimeMessage.getFullMimeType());
 			
-			MimeMessage mimeMessage = emailViewResponse.getMimeMessage();
 			FetchInstruction fetchInstruction = getFetchInstruction(bodyPreferencePolicy, mimeMessage);
 			if (fetchInstruction != null) {
 				fetchBody(emailViewBuilder, fetchInstruction, uid);

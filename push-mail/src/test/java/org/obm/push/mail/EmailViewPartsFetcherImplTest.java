@@ -47,8 +47,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import net.fortuna.ical4j.model.property.Organizer;
-
 import org.apache.james.mime4j.codec.Base64InputStream;
 import org.apache.james.mime4j.codec.QuotedPrintableInputStream;
 import org.easymock.IMocksControl;
@@ -92,6 +90,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.io.Resources;
+
+import net.fortuna.ical4j.model.property.Organizer;
 
 
 public class EmailViewPartsFetcherImplTest {
@@ -884,6 +884,7 @@ public class EmailViewPartsFetcherImplTest {
 		expect(mimeMessage.findMainMessage(anyObject(ContentType.class))).andReturn(mimePart).anyTimes();
 		expect(mimeMessage.findRootMimePartInTree()).andReturn(mimeMessage).anyTimes();
 		expect(mimeMessage.listLeaves(true, true)).andReturn(ImmutableList.<MimePart> of(mimePart)).anyTimes();
+		expect(mimeMessage.getFullMimeType()).andReturn(messageFixture.fullMimeType).anyTimes();
 
 		return mimeMessage;
 	}
@@ -922,6 +923,7 @@ public class EmailViewPartsFetcherImplTest {
 		expect(mimeMessage.findMainMessage(anyObject(ContentType.class))).andReturn(mimePart).anyTimes();
 		expect(mimeMessage.findRootMimePartInTree()).andReturn(mimeMessage).anyTimes();
 		expect(mimeMessage.listLeaves(true, true)).andReturn(ImmutableList.<MimePart> of(mimePart)).anyTimes();
+		expect(mimeMessage.getFullMimeType()).andReturn(messageFixture.fullMimeType).anyTimes();
 
 		return mimeMessage;
 	}
@@ -1096,6 +1098,7 @@ public class EmailViewPartsFetcherImplTest {
 		expect(mimeMessage.findMainMessage(anyObject(ContentType.class))).andReturn(null).anyTimes();
 		expect(mimeMessage.findRootMimePartInTree()).andReturn(mimeMessage).anyTimes();
 		expect(mimeMessage.listLeaves(true, true)).andReturn(ImmutableList.<MimePart> of()).anyTimes();
+		expect(mimeMessage.getFullMimeType()).andReturn(messageFixture.fullMimeType).anyTimes();
 		
 		return mimeMessage;
 	}
@@ -1142,5 +1145,16 @@ public class EmailViewPartsFetcherImplTest {
 		control.replay();
 		emailViewPartsFetcherImpl.fetchBodyData(fetchInstruction, 1);
 		control.verify();
+	}
+	
+	@Test
+	public void fetchShouldRetrieveMimeType() throws Exception {
+		EmailViewPartsFetcherImpl emailViewPartsFetcherImpl = newFetcherFromExpectedFixture(messageFixtureToMailboxServiceMock(buildFetchingMimeMessageFromFixture()));
+		
+		control.replay();
+		EmailView emailView = emailViewPartsFetcherImpl.fetch(messageFixture.uid, new AnyMatchBodyPreferencePolicy());
+		control.verify();
+
+		assertThat(emailView.getMimeType()).isEqualTo(messageFixture.fullMimeType);
 	}
 }
