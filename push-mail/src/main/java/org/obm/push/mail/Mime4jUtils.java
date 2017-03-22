@@ -80,6 +80,7 @@ public class Mime4jUtils {
 	public final static String TYPE_MULTIPART_PREFIX = "multipart/";
 	public final static String SUBTYPE_MULTIPART_MIXED = "mixed";
 	public final static String TYPE_MULTIPART_MIXED = "multipart/mixed";
+	public final static String REPORT_SUBTYPE = "report";
 	
 	private final MessageBuilder messageBuilder;
 	private final MessageWriter messageWriter;
@@ -109,6 +110,10 @@ public class Mime4jUtils {
 	
 	public Multipart createMultipartAlternative() {
 		return new MultipartImpl(MimeContentType.MULTIPART_ALTERNATIVE.getSubType());
+	}
+	
+	public Multipart createMultipartReport() {
+		return new MultipartImpl(REPORT_SUBTYPE);
 	}
 
 	public BodyPart bodyToBodyPart(Body body, String mimeType) {

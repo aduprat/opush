@@ -44,6 +44,10 @@ import org.obm.push.mail.MailBackendImpl;
 import org.obm.push.mail.MailErrorsManager;
 import org.obm.push.mail.MailViewToMSEmailConverter;
 import org.obm.push.mail.MailViewToMSEmailConverterImpl;
+import org.obm.push.mail.report.DeliveryReceiptMessage;
+import org.obm.push.mail.report.MimeBoundaryFactory;
+import org.obm.push.mail.report.MimeBoundaryFactoryImpl;
+import org.obm.push.mail.report.ReadReceiptMessage;
 import org.obm.push.mail.smtp.SmtpProvider;
 import org.obm.push.mail.smtp.SmtpProviderImpl;
 import org.obm.push.mail.smtp.SmtpSenderImpl;
@@ -77,6 +81,10 @@ public class OpushMailModule extends AbstractModule {
 		transformers.addBinding().to(TextToHtml.Factory.class);
 		transformers.addBinding().to(HtmlToText.Factory.class);
 		bind(ErrorsManager.class).to(MailErrorsManager.class);
+		
+		bind(DeliveryReceiptMessage.class);
+		bind(ReadReceiptMessage.class);
+		bind(MimeBoundaryFactory.class).to(MimeBoundaryFactoryImpl.class);
 	}
 
 }
