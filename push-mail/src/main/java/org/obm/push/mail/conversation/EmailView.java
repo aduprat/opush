@@ -45,6 +45,7 @@ import org.obm.push.mail.bean.Flag;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
@@ -56,6 +57,8 @@ public class EmailView {
 	
 	public static class Builder {
 
+		private static final String TEXT_PLAIN = "text/plain";
+		
 		private Long uid;
 		private Collection<Flag> flags;
 		private Envelope envelope;
@@ -67,6 +70,7 @@ public class EmailView {
 		private MSEmailBodyType bodyType;
 		private String charset;
 		private Boolean truncated;
+		private String mimeType;
 		
 		private Builder() {
 			attachments = ImmutableList.<EmailViewAttachment>builder();
@@ -129,6 +133,11 @@ public class EmailView {
 			return this;
 		}
 		
+		public Builder mimeType(String mimeType) {
+			this.mimeType = mimeType;
+			return this;
+		}
+		
 		public EmailView build() {
 			if (uid == null) {
 				throw new EmailViewBuildException("The uid is required");
@@ -148,7 +157,14 @@ public class EmailView {
 			return new EmailView(uid, flags, envelope, 
 					Optional.fromNullable(bodyMimePartData), 
 					estimatedDataSize, attachments.build(), iCalendar, invitationType, 
-					bodyType, charset, truncated);
+					bodyType, charset, truncated, getMimeType());
+		}
+
+		private String getMimeType() {
+			if (Strings.isNullOrEmpty(mimeType)) {
+				return TEXT_PLAIN;
+			}
+			return mimeType;
 		}
 	}
 	
@@ -163,11 +179,12 @@ public class EmailView {
 	private final String charset;
 	private final MSEmailBodyType bodyType;
 	private final boolean truncated;
+	private final String mimeType;
 
 	private EmailView(long uid, Collection<Flag> flags, Envelope envelope,
 			Optional<InputStream> bodyMimePartData, int estimatedDataSize, List<EmailViewAttachment> attachments, 
 			ICalendar iCalendar, EmailViewInvitationType invitationType, MSEmailBodyType bodyType,
-			String charset, boolean truncated) {
+			String charset, boolean truncated, String mimeType) {
 		
 		this.uid = uid;
 		this.flags = flags;
@@ -180,6 +197,7 @@ public class EmailView {
 		this.charset = charset;
 		this.bodyType = bodyType;
 		this.truncated = truncated;
+		this.mimeType = mimeType;
 	}
 
 	public long getUid() {
@@ -248,6 +266,14 @@ public class EmailView {
 
 	public boolean isTruncated() {
 		return truncated;
+	}
+
+	public ICalendar getiCalendar() {
+		return iCalendar;
+	}
+
+	public String getMimeType() {
+		return mimeType;
 	}
 	
 	@Override

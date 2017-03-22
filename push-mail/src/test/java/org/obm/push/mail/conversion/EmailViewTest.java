@@ -38,8 +38,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
-import net.fortuna.ical4j.data.ParserException;
-
 import org.junit.Test;
 import org.obm.DateUtils;
 import org.obm.icalendar.ICalendar;
@@ -54,6 +52,8 @@ import org.obm.push.mail.conversation.EmailViewAttachment;
 import org.obm.push.mail.conversation.EmailViewInvitationType;
 
 import com.google.common.collect.Lists;
+
+import net.fortuna.ical4j.data.ParserException;
 
 
 public class EmailViewTest {
@@ -336,6 +336,58 @@ public class EmailViewTest {
 		.build();
 		
 		assertThat(emailView.isTruncated()).isTrue();
+	}
+	
+	@Test
+	public void mimeTypeShouldBeTextPlainWhenNotGiven() {
+		EmailView emailView = EmailView.builder()
+				.uid(155)
+				.envelope(anyEnvelope())
+				.bodyType(MSEmailBodyType.PlainText)
+				.truncated(true)
+				.build();
+		
+		assertThat(emailView.getMimeType()).isEqualTo("text/plain");
+	}
+	
+	@Test
+	public void mimeTypeShouldBeTextPlainWhenNull() {
+		EmailView emailView = EmailView.builder()
+				.uid(155)
+				.envelope(anyEnvelope())
+				.bodyType(MSEmailBodyType.PlainText)
+				.truncated(true)
+				.mimeType(null)
+				.build();
+		
+		assertThat(emailView.getMimeType()).isEqualTo("text/plain");
+	}
+	
+	@Test
+	public void mimeTypeShouldBeTextPlainWhenEmpty() {
+		EmailView emailView = EmailView.builder()
+				.uid(155)
+				.envelope(anyEnvelope())
+				.bodyType(MSEmailBodyType.PlainText)
+				.truncated(true)
+				.mimeType("")
+				.build();
+		
+		assertThat(emailView.getMimeType()).isEqualTo("text/plain");
+	}
+	
+	@Test
+	public void mimeTypeShouldKeepGivenValue() {
+		String mimeType = "mulipart/report";
+		EmailView emailView = EmailView.builder()
+				.uid(155)
+				.envelope(anyEnvelope())
+				.bodyType(MSEmailBodyType.PlainText)
+				.truncated(true)
+				.mimeType(mimeType)
+				.build();
+		
+		assertThat(emailView.getMimeType()).isEqualTo(mimeType);
 	}
 	
 	private InputStream anyBodyMimePartData() {
