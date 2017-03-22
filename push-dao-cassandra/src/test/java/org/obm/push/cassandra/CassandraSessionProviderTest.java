@@ -49,7 +49,7 @@ public class CassandraSessionProviderTest {
 	// In this test, we want to connect to EmbeddedCassandra without cassandraCQLUnit.session;
 	// but the default port in com.datastax.driver.core.ProtocolOptions (9042) doesn't match the default port in cu-cassandra.yaml
 	// so we have to give a working configuration.
-	@Rule public CassandraCQLUnit cassandraCQLUnit = new OpushCassandraCQLUnit("empty.cql");
+	@Rule public CassandraCQLUnit cassandraCQLUnit = new OpushCassandraCQLUnit();
 
 	private CassandraSessionProvider cassandraSessionProvider;
 	

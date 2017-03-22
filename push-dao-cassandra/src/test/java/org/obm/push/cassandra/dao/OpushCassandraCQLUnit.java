@@ -47,6 +47,11 @@ public class OpushCassandraCQLUnit extends CassandraCQLUnit {
 	public static final long STARTUP_TIMEOUT = Objects.firstNonNull(
 			VMArgumentsUtils.integerArgumentValue("cassandraStartupTime"),
 			Ints.checkedCast(EmbeddedCassandraServerHelper.DEFAULT_STARTUP_TIMEOUT));
+	private static final String EMPTY_SCHEMA = "";
+
+	public OpushCassandraCQLUnit() {
+		this(EMPTY_SCHEMA);
+	}
 
 	public OpushCassandraCQLUnit(String schema) {
 		super(new SchemaCQLDataSet(schema, KEYSPACE), YAML, HOST, PORT, STARTUP_TIMEOUT);

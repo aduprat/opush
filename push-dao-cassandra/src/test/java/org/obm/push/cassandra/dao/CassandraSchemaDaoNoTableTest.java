@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
 
 public class CassandraSchemaDaoNoTableTest {
 
-	@Rule public CassandraCQLUnit cassandraCQLUnit = new OpushCassandraCQLUnit("empty.cql");
+	@Rule public CassandraCQLUnit cassandraCQLUnit = new OpushCassandraCQLUnit();
 	
 	private Logger logger = LoggerFactory.getLogger(CassandraSchemaDaoNoTableTest.class);
 	
