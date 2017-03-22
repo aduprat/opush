@@ -127,6 +127,7 @@ import org.obm.push.mail.conversation.EmailViewAttachment;
 import org.obm.push.mail.exception.FilterTypeChangedException;
 import org.obm.push.mail.mime.MimeAddress;
 import org.obm.push.mail.report.DeliveryReceiptMessage;
+import org.obm.push.mail.report.ReadReceiptMessage;
 import org.obm.push.mail.transformer.Transformer.TransformersFactory;
 import org.obm.push.protocol.bean.CollectionId;
 import org.obm.push.service.AuthenticationService;
@@ -184,6 +185,7 @@ public class MailBackendImpl extends OpushBackend implements MailBackend {
 	private final DateService dateService;
 	private final FolderSnapshotDao folderSnapshotDao;
 	private final DeliveryReceiptMessage deliveryReceiptMessage;
+	private final ReadReceiptMessage readReceiptMessage;
 	private final DeliveryStatusNotificationDao deliveryStatusNotificationDao;
 
 	private final OpushEmailConfiguration emailConfiguration;
@@ -205,6 +207,7 @@ public class MailBackendImpl extends OpushBackend implements MailBackend {
 			DateService dateService,
 			FolderSnapshotDao folderSnapshotDao,
 			DeliveryReceiptMessage deliveryReceiptMessage,
+			ReadReceiptMessage readReceiptMessage,
 			DeliveryStatusNotificationDao deliveryStatusNotificationDao)  {
 
 		super(mappingService);
@@ -224,6 +227,7 @@ public class MailBackendImpl extends OpushBackend implements MailBackend {
 		this.dateService = dateService;
 		this.folderSnapshotDao = folderSnapshotDao;
 		this.deliveryReceiptMessage = deliveryReceiptMessage;
+		this.readReceiptMessage = readReceiptMessage;
 		this.deliveryStatusNotificationDao = deliveryStatusNotificationDao;
 	}
 
@@ -343,13 +347,8 @@ public class MailBackendImpl extends OpushBackend implements MailBackend {
 		Optional<Message> deliveryReceipt = deliveryReceiptMessage.from(udr.getUser(), msEmail);
 		ServerId serverId = itemChange.getServerId();
 		if (shouldSendDeliveryReceipt(udr, msEmail.getMessageClass(), serverId, deliveryReceipt)) {
-			try {
-				boolean saveInSent = true;
-				sendEmail(udr, IOUtils.toByteArray(new Mime4jUtils().toInputStream(deliveryReceipt.get())), saveInSent);
-				storeDeliveryReceiptFlag(udr.getUser(), serverId);
-			} catch (ProcessingEmailException | IOException e) {
-				logger.warn("Error whiling sending delivery receipt", e);
-			}
+			sendReceipt(udr, deliveryReceipt.get());
+			storeDeliveryReceiptFlag(udr.getUser(), serverId);
 		}
 	}
 
@@ -492,8 +491,9 @@ public class MailBackendImpl extends OpushBackend implements MailBackend {
 			MailboxPath path = folder.getTypedBackendId();
 			logger.info("createOrUpdate( {}, {}, {} )", folder.getBackendId(), serverId, clientId);
 			if (serverId != null) {
-				MessageSet messages = MessageSet.singleton(getEmailUidFromServerId(serverId));
-				mailboxService.updateReadFlag(udr, path, messages, msEmail.isRead());
+				MessageSet singleton = MessageSet.singleton(getEmailUidFromServerId(serverId));
+				processReadReceipt(udr, msEmail, folder, collectionId, serverId, path, singleton);
+				mailboxService.updateReadFlag(udr, path, singleton, msEmail.isRead());
 			}
 			return serverId;
 		} catch (MailException e) {
@@ -503,6 +503,58 @@ public class MailBackendImpl extends OpushBackend implements MailBackend {
 		} catch (ImapMessageNotFoundException e) {
 			throw new ItemNotFoundException(e);
 		}
+	}
+
+	@VisibleForTesting void processReadReceipt(UserDataRequest udr, MSEmail msEmail, Folder folder, 
+			CollectionId collectionId, ServerId serverId, MailboxPath path, MessageSet singleton) {
+		if (isInInbox(folder)) {
+			try {
+				Optional<UidMSEmail> mayBeMSEmail = FluentIterable.from(
+						msEmailFetcher.fetch(udr, collectionId, path, ImmutableList.copyOf(singleton.asDiscreteValues()), null, Optional.<MimeSupport>absent()))
+					.first();
+				if (mayBeMSEmail.isPresent()) {
+					sendReadReceipt(udr, serverId, mayBeMSEmail.get());
+				}		
+			} catch (EmailViewPartsFetcherException e) {
+				logger.warn("Error whiling sending read receipt", e);
+			}
+		}
+	}
+
+	private boolean isInInbox(Folder folder) {
+		return folder.getFolderType().equals(FolderType.DEFAULT_INBOX_FOLDER);
+	}
+
+	private void sendReadReceipt(UserDataRequest udr, ServerId serverId, UidMSEmail msEmail) {
+		Optional<Message> readReceipt = readReceiptMessage.from(udr.getUser(), msEmail);
+		if (shouldSendReadReceipt(udr, msEmail, serverId, readReceipt)) {
+			sendReceipt(udr, readReceipt.get());
+			storeReadReceiptFlag(udr.getUser(), serverId);
+		}
+	}
+
+	private void sendReceipt(UserDataRequest udr, Message message) {
+		try {
+			boolean saveInSent = true;
+			sendEmail(udr, IOUtils.toByteArray(new Mime4jUtils().toInputStream(message)), saveInSent);
+		} catch (ProcessingEmailException | IOException e) {
+			logger.warn("Error whiling sending receipt", e);
+		}
+	}
+
+	private boolean shouldSendReadReceipt(UserDataRequest udr, UidMSEmail msEmail, ServerId serverId, Optional<Message> readReceipt) {
+		return readReceipt.isPresent()
+				&& !msEmail.isRead()
+				&& !msEmail.getMessageClass().isReport()
+				&& !deliveryStatusNotificationDao.hasAlreadyBeenRead(udr.getUser(), serverId);
+	}
+
+	private void storeReadReceiptFlag(User user, ServerId serverId) {
+		deliveryStatusNotificationDao.insertStatus(DeliveryStatusNotification.builder()
+				.user(user)
+				.serverId(serverId)
+				.readReceipt(true)
+				.build());
 	}
 
 	@Override

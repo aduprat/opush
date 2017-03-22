@@ -89,6 +89,7 @@ import org.obm.push.mail.mime.MimeMessageImpl;
 import org.obm.push.mail.mime.MimePart;
 import org.obm.push.mail.mime.MimePartImpl;
 import org.obm.push.mail.report.DeliveryReceiptMessage;
+import org.obm.push.mail.report.ReadReceiptMessage;
 import org.obm.push.mail.transformer.Transformer;
 import org.obm.push.mail.transformer.Transformer.TransformersFactory;
 import org.obm.push.protocol.bean.CollectionId;
@@ -138,6 +139,7 @@ public class MailboxBackendTest {
 	private FolderSnapshotDao folderSnapshotDao;
 	private WindowingToSnapshotDao windowingToSnapshotDao;
 	private DeliveryReceiptMessage deliveryReceiptMessage;
+	private ReadReceiptMessage readReceiptMessage;
 	private DeliveryStatusNotificationDao deliveryStatusNotificationDao;
 	private CollectionId inboxCollectionId;
 
@@ -178,12 +180,13 @@ public class MailboxBackendTest {
 		dateService = mocks.createMock(DateService.class);
 		folderSnapshotDao = mocks.createMock(FolderSnapshotDao.class);
 		deliveryReceiptMessage = mocks.createMock(DeliveryReceiptMessage.class);
+		readReceiptMessage = mocks.createMock(ReadReceiptMessage.class);
 		deliveryStatusNotificationDao = mocks.createMock(DeliveryStatusNotificationDao.class);
 		
 		mailBackendImpl = new MailBackendImpl(mailboxService, null, null, null, 
 				snapshotDao, null, mappingService, msEmailFetcher, null, null, windowingDao, 
 				windowingToSnapshotDao, smtpSender, emailConfiguration, dateService, folderSnapshotDao,
-				deliveryReceiptMessage, deliveryStatusNotificationDao);
+				deliveryReceiptMessage, readReceiptMessage, deliveryStatusNotificationDao);
 	}
 	
 	@Test

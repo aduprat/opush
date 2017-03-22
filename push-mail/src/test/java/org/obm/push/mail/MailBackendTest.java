@@ -66,6 +66,7 @@ import org.obm.push.exception.activesync.StoreEmailException;
 import org.obm.push.mail.bean.EmailReader;
 import org.obm.push.mail.bean.MessageSet;
 import org.obm.push.mail.report.DeliveryReceiptMessage;
+import org.obm.push.mail.report.ReadReceiptMessage;
 import org.obm.push.protocol.bean.CollectionId;
 import org.obm.push.service.AuthenticationService;
 import org.obm.push.service.DateService;
@@ -95,6 +96,7 @@ public class MailBackendTest {
 	private FolderSnapshotDao folderSnapshotDao;
 	private WindowingToSnapshotDao windowingToSnapshotDao;
 	private DeliveryReceiptMessage deliveryReceiptMessage;
+	private ReadReceiptMessage readReceiptMessage;
 	private DeliveryStatusNotificationDao deliveryStatusNotificationDao;
 
 	private IMocksControl mocksControl;
@@ -117,12 +119,13 @@ public class MailBackendTest {
 		dateService = mocksControl.createMock(DateService.class);
 		folderSnapshotDao = mocksControl.createMock(FolderSnapshotDao.class);
 		deliveryReceiptMessage = mocksControl.createMock(DeliveryReceiptMessage.class);
+		readReceiptMessage = mocksControl.createMock(ReadReceiptMessage.class);
 		deliveryStatusNotificationDao = mocksControl.createMock(DeliveryStatusNotificationDao.class);
 		
 		testee = new MailBackendImpl(mailboxService, null, null, null, null, null,  
 				mappingService, null, null, null, windowingDao, windowingToSnapshotDao, 
 				smtpSender, emailConfiguration, dateService, folderSnapshotDao,
-				deliveryReceiptMessage, deliveryStatusNotificationDao);
+				deliveryReceiptMessage, readReceiptMessage, deliveryStatusNotificationDao);
 	}
 	
 	@Test
@@ -147,7 +150,7 @@ public class MailBackendTest {
 		MailBackend mailBackend = new MailBackendImpl(mailboxService, authenticationService, new Mime4jUtils(),
 				mockOpushConfiguration(), null, null, mappingService, null, null,
 				null, windowingDao, windowingToSnapshotDao, smtpSender, emailConfiguration,
-				dateService, folderSnapshotDao, deliveryReceiptMessage, deliveryStatusNotificationDao);
+				dateService, folderSnapshotDao, deliveryReceiptMessage, readReceiptMessage, deliveryStatusNotificationDao);
 
 		mocksControl.replay();
 		

@@ -70,8 +70,11 @@ import org.obm.push.bean.DeviceId;
 import org.obm.push.bean.FilterType;
 import org.obm.push.bean.FolderType;
 import org.obm.push.bean.ItemSyncState;
+import org.obm.push.bean.MSAttachement;
 import org.obm.push.bean.MSContact;
+import org.obm.push.bean.MSEmailHeader;
 import org.obm.push.bean.MSMessageClass;
+import org.obm.push.bean.MimeSupport;
 import org.obm.push.bean.PIMDataType;
 import org.obm.push.bean.ServerId;
 import org.obm.push.bean.SnapshotKey;
@@ -91,6 +94,8 @@ import org.obm.push.bean.change.item.ItemChange;
 import org.obm.push.bean.change.item.ItemDeletion;
 import org.obm.push.bean.change.item.MSEmailChanges;
 import org.obm.push.bean.ms.MSEmail;
+import org.obm.push.bean.ms.MSEmailBody;
+import org.obm.push.bean.ms.UidMSEmail;
 import org.obm.push.configuration.OpushEmailConfiguration;
 import org.obm.push.exception.DaoException;
 import org.obm.push.exception.EmailViewPartsFetcherException;
@@ -101,8 +106,10 @@ import org.obm.push.mail.bean.Email;
 import org.obm.push.mail.bean.EmailReader;
 import org.obm.push.mail.bean.MailboxFolder;
 import org.obm.push.mail.bean.MailboxFolders;
+import org.obm.push.mail.bean.MessageSet;
 import org.obm.push.mail.bean.Snapshot;
 import org.obm.push.mail.report.DeliveryReceiptMessage;
+import org.obm.push.mail.report.ReadReceiptMessage;
 import org.obm.push.mail.transformer.Transformer.TransformersFactory;
 import org.obm.push.protocol.bean.CollectionId;
 import org.obm.push.service.AuthenticationService;
@@ -149,6 +156,7 @@ public class MailBackendImplTest {
 	private FolderSnapshotDao folderSnapshotDao;
 	private WindowingToSnapshotDao windowingToSnapshotDao;
 	private DeliveryReceiptMessage deliveryReceiptMessage;
+	private ReadReceiptMessage readReceiptMessage;
 	private DeliveryStatusNotificationDao deliveryStatusNotificationDao;
 
 	private MailBackendImpl testee;
@@ -195,12 +203,13 @@ public class MailBackendImplTest {
 		authenticationService = control.createMock(AuthenticationService.class);
 		folderSnapshotDao = control.createMock(FolderSnapshotDao.class);
 		deliveryReceiptMessage = control.createMock(DeliveryReceiptMessage.class);
+		readReceiptMessage = control.createMock(ReadReceiptMessage.class);
 		deliveryStatusNotificationDao = control.createMock(DeliveryStatusNotificationDao.class);
 		
 		testee = new MailBackendImpl(mailboxService, authenticationService, new Mime4jUtils(), null, snapshotDao,
 				serverEmailChangesBuilder, mappingService, msEmailFetcher, transformersFactory, mailBackendSyncDataFactory,
 				windowingDao, windowingToSnapshotDao, smtpSender, emailConfiguration, dateService, folderSnapshotDao,
-				deliveryReceiptMessage, deliveryStatusNotificationDao);
+				deliveryReceiptMessage, readReceiptMessage, deliveryStatusNotificationDao);
 	}
 	
 	@Test
@@ -1298,6 +1307,163 @@ public class MailBackendImplTest {
 		
 		control.replay();
 		testee.processDeliveryReceipts(udr, folder, changes);
+		control.verify();
+	}
+	
+	@Test
+	@SuppressWarnings("unchecked")
+	public void sendReadReceiptsShouldSendReadReceiptWhenNotAlreadySent() throws Exception {
+		Message message = control.createMock(Message.class);
+		expect(message.getHeader())
+			.andReturn(new HeaderImpl());
+		expect(message.getBody())
+			.andReturn(new BasicBodyFactory().textBody("my text"));
+		expect(message.getContentTransferEncoding())
+			.andReturn("8BIT");
+		message.dispose();
+		expectLastCall();
+		
+		MSEmail msEmail = MSEmail.builder()
+				.header(MSEmailHeader.builder().build())
+				.body(MSEmailBody.builder().build())
+				.attachements(ImmutableSet.<MSAttachement>of())
+				.build();
+		
+		long uid = 5l;
+		UidMSEmail uidMSEmail = UidMSEmail.uidBuilder()
+				.email(msEmail)
+				.uid(uid)
+				.build();
+		ServerId serverId = collectionId.serverId(245);
+		expect(readReceiptMessage.from(user, uidMSEmail))
+			.andReturn(Optional.of(message));
+		
+		expect(deliveryStatusNotificationDao.hasAlreadyBeenRead(udr.getUser(), serverId))
+			.andReturn(false);
+		deliveryStatusNotificationDao.insertStatus(DeliveryStatusNotification.builder()
+				.user(user)
+				.serverId(serverId)
+				.readReceipt(true)
+				.build());
+		expectLastCall();
+		
+		expect(msEmailFetcher.fetch(udr, collectionId, collectionPath, ImmutableList.of(uid), null, Optional.<MimeSupport>absent()))
+			.andReturn(ImmutableList.of(uidMSEmail));
+		
+		expect(authenticationService.getUserEmail(udr))
+			.andReturn(udr.getUser().getEmail());
+		
+		smtpSender.sendEmail(eq(udr), 
+				eq(new Address(udr.getUser().getEmail())), 
+				anyObject(Set.class), 
+				anyObject(Set.class), 
+				anyObject(Set.class), 
+				anyObject(ByteArrayInputStream.class));
+		expectLastCall();
+		
+		control.replay();
+		testee.processReadReceipt(udr, msEmail, inbox, collectionId, serverId, collectionPath, MessageSet.singleton(uid));
+		control.verify();
+	}
+	
+	@Test
+	public void sendReadReceiptsShouldNotSendReadReceiptWhenAlreadySent() throws Exception {
+		Message message = control.createMock(Message.class);
+		
+		MSEmail msEmail = MSEmail.builder()
+				.header(MSEmailHeader.builder().build())
+				.body(MSEmailBody.builder().build())
+				.attachements(ImmutableSet.<MSAttachement>of())
+				.build();
+		
+		long uid = 5l;
+		UidMSEmail uidMSEmail = UidMSEmail.uidBuilder()
+				.email(msEmail)
+				.uid(uid)
+				.build();
+		ServerId serverId = collectionId.serverId(245);
+		expect(readReceiptMessage.from(user, uidMSEmail))
+			.andReturn(Optional.of(message));
+		
+		expect(deliveryStatusNotificationDao.hasAlreadyBeenRead(udr.getUser(), serverId))
+			.andReturn(true);
+		
+		expect(msEmailFetcher.fetch(udr, collectionId, collectionPath, ImmutableList.of(uid), null, Optional.<MimeSupport>absent()))
+			.andReturn(ImmutableList.of(uidMSEmail));
+		
+		control.replay();
+		testee.processReadReceipt(udr, msEmail, inbox, collectionId, serverId, collectionPath, MessageSet.singleton(uid));
+		control.verify();
+	}
+	
+	@Test
+	public void sendReadReceiptsShouldNotSendReadReceiptWhenMessageIsAReport() throws Exception {
+		Message message = control.createMock(Message.class);
+		
+		MSEmail msEmail = MSEmail.builder()
+				.header(MSEmailHeader.builder().build())
+				.body(MSEmailBody.builder().build())
+				.attachements(ImmutableSet.<MSAttachement>of())
+				.messageClass(MSMessageClass.NOTE_REPORT_DR)
+				.build();
+		
+		long uid = 5l;
+		UidMSEmail uidMSEmail = UidMSEmail.uidBuilder()
+				.email(msEmail)
+				.uid(uid)
+				.build();
+		ServerId serverId = collectionId.serverId(245);
+		expect(readReceiptMessage.from(user, uidMSEmail))
+			.andReturn(Optional.of(message));
+		
+		expect(msEmailFetcher.fetch(udr, collectionId, collectionPath, ImmutableList.of(uid), null, Optional.<MimeSupport>absent()))
+			.andReturn(ImmutableList.of(uidMSEmail));
+		
+		control.replay();
+		testee.processReadReceipt(udr, msEmail, inbox, collectionId, serverId, collectionPath, MessageSet.singleton(uid));
+		control.verify();
+	}
+	
+	@Test
+	public void sendReadReceiptsShouldNotSendReadReceiptWhenNoMessage() throws Exception {
+		MSEmail msEmail = MSEmail.builder()
+				.header(MSEmailHeader.builder().build())
+				.body(MSEmailBody.builder().build())
+				.attachements(ImmutableSet.<MSAttachement>of())
+				.messageClass(MSMessageClass.NOTE_REPORT_DR)
+				.build();
+		long uid = 5l;
+		UidMSEmail uidMSEmail = UidMSEmail.uidBuilder()
+				.email(msEmail)
+				.uid(uid)
+				.build();
+		
+		expect(readReceiptMessage.from(user, uidMSEmail))
+			.andReturn(Optional.<Message> absent());
+		
+		ServerId serverId = collectionId.serverId(245);
+		
+		expect(msEmailFetcher.fetch(udr, collectionId, collectionPath, ImmutableList.of(uid), null, Optional.<MimeSupport>absent()))
+			.andReturn(ImmutableList.of(uidMSEmail));
+		
+		control.replay();
+		testee.processReadReceipt(udr, msEmail, inbox, collectionId, serverId, collectionPath, MessageSet.singleton(uid));
+		control.verify();
+	}
+	
+	@Test
+	public void sendReadReceiptsShouldNotSendReadReceiptWhenNotInbox() throws Exception {
+		MSEmail msEmail = MSEmail.builder()
+				.header(MSEmailHeader.builder().build())
+				.body(MSEmailBody.builder().build())
+				.attachements(ImmutableSet.<MSAttachement>of())
+				.build();
+		
+		long uid = 5l;
+		ServerId serverId = collectionId.serverId(245);
+		
+		control.replay();
+		testee.processReadReceipt(udr, msEmail, folder, collectionId, serverId, collectionPath, MessageSet.singleton(uid));
 		control.verify();
 	}
 }
