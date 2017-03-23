@@ -36,7 +36,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public abstract class SyncKeyMixIn {
 	
-	@SuppressWarnings("unused")
 	@JsonCreator
 	public SyncKeyMixIn(@JsonProperty("syncKey") String syncKey) {}
 	

@@ -38,7 +38,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public abstract class DeviceIdMixIn implements Serializable {
 
-	@SuppressWarnings("unused")
 	@JsonCreator
 	public DeviceIdMixIn(@JsonProperty("deviceId") String deviceId) {}
 }

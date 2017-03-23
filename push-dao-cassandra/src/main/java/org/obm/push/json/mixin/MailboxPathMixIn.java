@@ -36,7 +36,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public abstract class MailboxPathMixIn {
 
-	@SuppressWarnings("unused")
 	@JsonCreator
 	protected MailboxPathMixIn(
 		@JsonProperty("path") String path,

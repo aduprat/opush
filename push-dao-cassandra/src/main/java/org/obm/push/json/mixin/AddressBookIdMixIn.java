@@ -36,7 +36,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public abstract class AddressBookIdMixIn {
 
-    @SuppressWarnings("unused")
     @JsonCreator
     protected AddressBookIdMixIn(
         @JsonProperty("id") int id

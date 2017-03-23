@@ -32,15 +32,16 @@
 package org.obm.push.tnefconverter.test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.easymock.EasyMock.anyInt;
+import static org.easymock.EasyMock.createControl;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
 import org.easymock.IMocksControl;
-
-import static org.easymock.EasyMock.*;
-
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.junit.Before;
@@ -128,7 +129,6 @@ public class GlobalObjectIdTests {
 		assertThat(globalObjectId.getUid()).isEqualTo("CC556677");
 	}
 
-	@SuppressWarnings("unused")
 	@Test(expected = IOException.class)
 	public void testFirstSkip() throws IOException {
 
@@ -147,7 +147,6 @@ public class GlobalObjectIdTests {
 		}
 	}
 
-	@SuppressWarnings("unused")
 	@Test(expected = IOException.class)
 	public void testSecondSkip() throws IOException {
 
@@ -167,7 +166,6 @@ public class GlobalObjectIdTests {
 		}
 	}
 
-	@SuppressWarnings("unused")
 	@Test(expected = IOException.class)
 	public void testThirdSkip() throws IOException {
 

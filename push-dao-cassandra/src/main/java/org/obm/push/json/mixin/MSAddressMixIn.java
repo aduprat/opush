@@ -36,7 +36,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public abstract class MSAddressMixIn {
 	
-	@SuppressWarnings("unused")
 	@JsonCreator
 	public MSAddressMixIn(@JsonProperty("displayName") String displayName,@JsonProperty("mail")  String mail) {}
 

@@ -38,7 +38,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public abstract class CredentialsMixIn {
 
-	@SuppressWarnings("unused") 
 	@JsonCreator
 	public CredentialsMixIn(
 			@JsonProperty("user") User user, 

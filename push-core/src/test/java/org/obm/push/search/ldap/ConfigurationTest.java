@@ -264,7 +264,6 @@ public class ConfigurationTest {
 		assertThat(configuration.isValidConfiguration()).isTrue();
 	}
 
-	@SuppressWarnings("unused")
 	@Test(expected=RuntimeException.class)
 	public void limitShouldTriggerExceptionWhenLessThanZero() {
 		expect(iniFile.getStringValue(SEARCH_LDAP_URL)).andReturn("ldaps://ldapserver");

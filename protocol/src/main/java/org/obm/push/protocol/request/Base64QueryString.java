@@ -141,7 +141,6 @@ public class Base64QueryString extends AbstractActiveSyncRequest {
 		
 	}
 
-	@SuppressWarnings("unused")
 	private void logRequestInfo(byte[] data, String decodedData){
 
 		/*

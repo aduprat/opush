@@ -36,7 +36,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public abstract class CalendarPathMixIn {
 
-	@SuppressWarnings("unused")
 	@JsonCreator
 	protected CalendarPathMixIn(@JsonProperty("path") String path) {
 	}

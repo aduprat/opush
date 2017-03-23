@@ -36,7 +36,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public abstract class MSEventUidMixIn {
 
-	@SuppressWarnings("unused")
 	@JsonCreator
 	public MSEventUidMixIn(@JsonProperty("uid") String uid) {}
 

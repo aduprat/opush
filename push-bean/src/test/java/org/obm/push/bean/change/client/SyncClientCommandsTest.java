@@ -40,8 +40,6 @@ import org.obm.push.bean.change.client.SyncClientCommands.Add;
 import org.obm.push.bean.change.client.SyncClientCommands.Update;
 import org.obm.push.protocol.bean.CollectionId;
 
-@SuppressWarnings("unused")
-
 public class SyncClientCommandsTest {
 
 	@Test(expected=IllegalArgumentException.class)

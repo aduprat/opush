@@ -13,7 +13,6 @@
 	<packaging>jar</packaging>
 	<name>OPush Probe Server</name>
 	<url>http://www.obm.org/</url>
-	<version>3.2.1</version>
 	
 	<dependencies>
 		<dependency>

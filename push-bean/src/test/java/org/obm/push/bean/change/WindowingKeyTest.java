@@ -38,12 +38,10 @@ import org.obm.push.bean.DeviceId;
 import org.obm.push.bean.SyncKey;
 import org.obm.push.bean.User;
 import org.obm.push.bean.User.Factory;
-import org.obm.push.bean.change.WindowingKey;
 import org.obm.push.protocol.bean.CollectionId;
 
 public class WindowingKeyTest {
 
-	@SuppressWarnings("unused")
 	@Test(expected=IllegalArgumentException.class)
 	public void testPreconditionUserNull() {
 		User user = null;
@@ -53,7 +51,6 @@ public class WindowingKeyTest {
 		new WindowingKey(user, deviceId, collectionId, syncKey);
 	}
 
-	@SuppressWarnings("unused")
 	@Test(expected=IllegalArgumentException.class)
 	public void testPreconditionDeviceIdNull() {
 		User user = Factory.create().createUser("user@domain", "user@domain", "user@domain");
@@ -63,7 +60,6 @@ public class WindowingKeyTest {
 		new WindowingKey(user, deviceId, collectionId, syncKey);
 	}
 
-	@SuppressWarnings("unused")
 	@Test(expected=IllegalArgumentException.class)
 	public void testPreconditionSyncKeyNull() {
 		User user = Factory.create().createUser("user@domain", "user@domain", "user@domain");

@@ -37,7 +37,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public abstract class MSMeetingRequestCategoryMixIn {
 
-	@SuppressWarnings("unused")
 	@JsonCreator
 	public MSMeetingRequestCategoryMixIn(@JsonProperty("category") String category) {}
 	

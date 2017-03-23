@@ -41,7 +41,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public abstract class DeviceMixIn {
 
-	@SuppressWarnings("unused")
 	@JsonCreator
 	public DeviceMixIn(@JsonProperty("databaseId") Integer databaseId, 
 			@JsonProperty("devType") String devType, 

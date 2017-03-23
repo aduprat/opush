@@ -44,5 +44,5 @@ public abstract class ServerIdMixIn implements Serializable {
 	abstract int asString();
 	
 	@JsonCreator
-	static ServerId of(@SuppressWarnings("unused") String value) {return null;}
+	static ServerId of(String value) {return null;}
 }
