@@ -37,11 +37,13 @@ import java.io.UnsupportedEncodingException;
 import java.util.Map;
 
 import org.apache.james.mime4j.dom.Body;
+import org.apache.james.mime4j.dom.Message;
 import org.apache.james.mime4j.dom.Multipart;
 import org.apache.james.mime4j.dom.address.AddressList;
-import org.apache.james.mime4j.field.address.LenientAddressBuilder;
+import org.apache.james.mime4j.field.Fields;
+import org.apache.james.mime4j.field.address.LenientAddressParser;
+import org.apache.james.mime4j.field.address.ParseException;
 import org.apache.james.mime4j.message.BodyPart;
-import org.apache.james.mime4j.message.MessageImpl;
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,14 +62,14 @@ public class Mime4jUtilsTest {
 	}
 	
 	@Test
-	public void parseInvalidEmailDontThrowIndexOutOfBound() {
-		AddressList addressList = LenientAddressBuilder.DEFAULT.parseAddressList("To: <@domain.com>");
+	public void parseInvalidEmailDontThrowIndexOutOfBound() throws ParseException {
+		AddressList addressList = LenientAddressParser.DEFAULT.parseAddressList("To: <@domain.com>");
 		Assertions.assertThat(addressList).isNotNull();
 	}
 	
 	@Test
 	public void testIsAttachmentExist() throws IOException {
-		MessageImpl message = mime4jUtils.createMessage();
+		Message message = mime4jUtils.createMessage();
 		
 		Multipart multipart = mime4jUtils.createMultipartMixed();
 
@@ -79,7 +81,8 @@ public class Mime4jUtilsTest {
 		mime4jUtils.attach(multipart, attachment, "attachment.txt", "message/rfc822");
 
 		Map<String, String> params = mime4jUtils.getContentTypeHeaderParams(Charsets.UTF_8);
-		message.setBody(multipart, MimeContentType.MULTIPART_MIXED.getContentType(), params);
+		message.setBody(multipart);
+		message.getHeader().setField(Fields.contentType(MimeContentType.MULTIPART_MIXED.getContentType(), params));
 		
 		int attachmentCount = mime4jUtils.getAttachmentCount((Multipart) message.getBody());
 		boolean attachmentsExist = mime4jUtils.isAttachmentsExist(message);
@@ -90,7 +93,7 @@ public class Mime4jUtilsTest {
 	
 	@Test
 	public void testIsAttachmentExistWithMultipartAlternative() throws IOException {
-		MessageImpl message = mime4jUtils.createMessage();
+		Message message = mime4jUtils.createMessage();
 		
 		Multipart multipart = mime4jUtils.createMultipartAlternative();
 
@@ -100,7 +103,8 @@ public class Mime4jUtilsTest {
 		multipart.addBodyPart(htmlBodyPart);
 		
 		Map<String, String> params = mime4jUtils.getContentTypeHeaderParams(Charsets.UTF_8);
-		message.setBody(multipart, MimeContentType.MULTIPART_ALTERNATIVE.getContentType(), params);
+		message.setBody(multipart);
+		message.getHeader().setField(Fields.contentType(MimeContentType.MULTIPART_ALTERNATIVE.getContentType(), params));
 		
 		int attachmentCount = mime4jUtils.getAttachmentCount((Multipart) message.getBody());
 		boolean attachmentsExist = mime4jUtils.isAttachmentsExist(message);
@@ -111,7 +115,7 @@ public class Mime4jUtilsTest {
 
 	@Test
 	public void testIsAttachmentExistWithNoMultipart() throws UnsupportedEncodingException {
-		MessageImpl message = mime4jUtils.createMessage();
+		Message message = mime4jUtils.createMessage();
 		Body body = mime4jUtils.createBody("Sample Text !");
 		message.setBody(body);
 		

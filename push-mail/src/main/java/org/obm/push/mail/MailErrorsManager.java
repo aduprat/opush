@@ -42,16 +42,17 @@ import java.util.Map;
 
 import org.apache.james.mime4j.MimeException;
 import org.apache.james.mime4j.MimeIOException;
+import org.apache.james.mime4j.dom.Header;
 import org.apache.james.mime4j.dom.Message;
 import org.apache.james.mime4j.dom.Multipart;
 import org.apache.james.mime4j.dom.TextBody;
 import org.apache.james.mime4j.dom.address.AddressList;
 import org.apache.james.mime4j.dom.address.Mailbox;
 import org.apache.james.mime4j.dom.field.ContentTypeField;
-import org.apache.james.mime4j.field.address.AddressBuilder;
+import org.apache.james.mime4j.field.Fields;
+import org.apache.james.mime4j.field.address.DefaultAddressParser;
 import org.apache.james.mime4j.field.address.ParseException;
 import org.apache.james.mime4j.message.BodyPart;
-import org.apache.james.mime4j.message.MessageImpl;
 import org.apache.james.mime4j.util.MimeUtil;
 import org.obm.push.backend.ErrorsManager;
 import org.obm.push.bean.UserDataRequest;
@@ -108,7 +109,7 @@ public class MailErrorsManager implements ErrorsManager {
 	}
 
 	/* package */ Message prepareMessage(UserDataRequest udr, String subject, String body, InputStream errorMail) throws FileNotFoundException, IOException, ParseException {
-		MessageImpl mm = prepareMessageHeaders(udr, subject);
+		Message mm = prepareMessageHeaders(udr, subject);
 		
 		Multipart multipart = mime4jUtils.createMultipartMixed();
 
@@ -121,7 +122,9 @@ public class MailErrorsManager implements ErrorsManager {
 		String boundary = MimeUtil.createUniqueBoundary();
 		params.put(ContentTypeField.PARAM_BOUNDARY, boundary);
 		
-		mm.setBody(multipart, MimeContentType.MULTIPART_MIXED.getContentType(), params);
+		mm.setBody(multipart);
+		mm.getHeader()
+			.setField(Fields.contentType(MimeContentType.MULTIPART_MIXED.getContentType(), params));
 		return mm;
 	}
 
@@ -132,13 +135,14 @@ public class MailErrorsManager implements ErrorsManager {
 		return mm;
 	}
 	
-	private MessageImpl prepareMessageHeaders(UserDataRequest udr, String subject) throws ParseException {
-		MessageImpl mm = mime4jUtils.createMessage();
-		mm.createMessageId(getHostname());
-		mm.setSubject(subject);
-		mm.setFrom(new Mailbox(errorNameSender, "postmaster", ""));
-		mm.setTo(AddressBuilder.DEFAULT.parseMailbox(udr.getCredentials().getUser().getEmail()));
-		mm.setDate(dateProvider.getDate());
+	private Message prepareMessageHeaders(UserDataRequest udr, String subject) throws ParseException {
+		Message mm = mime4jUtils.createMessage();
+		Header header = mm.getHeader();
+		header.setField(Fields.messageId(getHostname()));
+		header.setField(Fields.subject(subject));
+		header.setField(Fields.from(new Mailbox(errorNameSender, "postmaster", "")));
+		header.setField(Fields.to(DefaultAddressParser.DEFAULT.parseAddress(udr.getCredentials().getUser().getEmail())));
+		header.setField(Fields.date(dateProvider.getDate()));
 		return mm;
 	}
 

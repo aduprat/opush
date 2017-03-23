@@ -39,11 +39,13 @@ import java.util.Map;
 
 import org.apache.james.mime4j.MimeException;
 import org.apache.james.mime4j.dom.BinaryBody;
+import org.apache.james.mime4j.dom.Header;
 import org.apache.james.mime4j.dom.Message;
 import org.apache.james.mime4j.dom.Multipart;
 import org.apache.james.mime4j.dom.field.ContentTypeField;
+import org.apache.james.mime4j.field.Fields;
 import org.apache.james.mime4j.message.BodyPart;
-import org.apache.james.mime4j.message.MessageImpl;
+import org.apache.james.mime4j.message.DefaultMessageBuilder;
 import org.apache.james.mime4j.storage.Storage;
 import org.apache.james.mime4j.storage.StorageBodyFactory;
 import org.apache.james.mime4j.storage.StorageOutputStream;
@@ -113,29 +115,38 @@ public class MSMailTestsUtils {
 		return attach;
 	}
 	
-	public static MessageImpl createMessagePlainText(Mime4jUtils mime4jUtils,String text) throws UnsupportedEncodingException {
-		MessageImpl msg = mime4jUtils.createMessage();
-		msg.setBody(mime4jUtils.createBody(text), ContentTypeField.TYPE_TEXT_PLAIN);
+	public static Message createMessagePlainText(Mime4jUtils mime4jUtils,String text) throws UnsupportedEncodingException {
+		Message msg = mime4jUtils.createMessage();
+		msg.setBody(mime4jUtils.createBody(text));
+		Header header = new DefaultMessageBuilder().newHeader();
+		header.setField(Fields.contentType(ContentTypeField.TYPE_TEXT_PLAIN));
+		msg.setHeader(header);
 		return msg;
 	}
 	
-	public static MessageImpl createMessageHtml(Mime4jUtils mime4jUtils,String html) throws UnsupportedEncodingException {
-		MessageImpl msg = mime4jUtils.createMessage();
-		msg.setBody(mime4jUtils.createBody(htmlBold(html)), "text/html");
+	public static Message createMessageHtml(Mime4jUtils mime4jUtils,String html) throws UnsupportedEncodingException {
+		Message msg = mime4jUtils.createMessage();
+		msg.setBody(mime4jUtils.createBody(htmlBold(html)));
+		Header header = new DefaultMessageBuilder().newHeader();
+		header.setField(Fields.contentType("text/html"));
+		msg.setHeader(header);
 		return msg;
 	}
 
-	public static MessageImpl createMessageTextAndHtml(Mime4jUtils mime4jUtils,
+	public static Message createMessageTextAndHtml(Mime4jUtils mime4jUtils,
 			String text, String html) throws UnsupportedEncodingException {
 		Map<String, String> params = mime4jUtils
 				.getContentTypeHeaderParams(Charsets.UTF_8);
 		String boundary = MimeUtil.createUniqueBoundary();
 		params.put(ContentTypeField.PARAM_BOUNDARY, boundary);
 
-		MessageImpl msg = mime4jUtils.createMessage();
+		Message msg = mime4jUtils.createMessage();
 		Multipart bodyMulti = MSMailTestsUtils.createMultipartTextAndHtml(
 				mime4jUtils, text, html);
-		msg.setBody(bodyMulti, "multipart/alternative", params);
+		msg.setBody(bodyMulti);
+		Header header = new DefaultMessageBuilder().newHeader();
+		header.setField(Fields.contentType("multipart/alternative", params));
+		msg.setHeader(header);
 		return msg;
 	}
 
@@ -149,12 +160,20 @@ public class MSMailTestsUtils {
 		return msg;
 	}
 
-	public static MessageImpl createMessageMultipartMixed(Mime4jUtils mime4jUtils, String text, byte[] imageData) throws IOException {
+	public static Message createMessageMultipartMixed(Mime4jUtils mime4jUtils, String text, byte[] imageData) throws IOException {
+		Map<String, String> params = mime4jUtils.getContentTypeHeaderParams(Charsets.UTF_8);
+		String boundary = MimeUtil.createUniqueBoundary();
+		params.put(ContentTypeField.PARAM_BOUNDARY, boundary);
+
 		Multipart multi = mime4jUtils.createMultipartMixed();
 		multi.addBodyPart(mime4jUtils.bodyToBodyPart(mime4jUtils.createBody(text), ContentTypeField.TYPE_TEXT_PLAIN));
         multi.addBodyPart(MSMailTestsUtils.createImagePart(imageData));
-        MessageImpl msg = mime4jUtils.createMessage();
-        msg.setMultipart(multi);
+        
+        Message msg = mime4jUtils.createMessage();
+		msg.setBody(multi);
+		Header header = new DefaultMessageBuilder().newHeader();
+		header.setField(Fields.contentType("multipart/mixed", params));
+		msg.setHeader(header);
         return msg;
 	}
 
@@ -168,12 +187,15 @@ public class MSMailTestsUtils {
 		
         // Create a body part with the correct MIME-type and transfer encoding
         BodyPart bodyPart = new BodyPart();
-        bodyPart.setBody(body, "image/png");
-        bodyPart.setContentTransferEncoding("base64");
+		bodyPart.setBody(body);
+		Header header = new DefaultMessageBuilder().newHeader();
+		header.setField(Fields.contentType("image/png"));
+		header.setField(Fields.contentTransferEncoding("base64"));
 
         // Specify a filename in the Content-Disposition header (implicitly sets
         // the disposition type to "attachment")
-        bodyPart.setFilename("smiley.png");
+		header.setField(Fields.contentDisposition("attachment", "smiley.png"));
+		bodyPart.setHeader(header);
 
         return bodyPart;
 	}

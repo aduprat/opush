@@ -46,14 +46,17 @@ import org.apache.james.mime4j.MimeException;
 import org.apache.james.mime4j.dom.BinaryBody;
 import org.apache.james.mime4j.dom.Body;
 import org.apache.james.mime4j.dom.Entity;
+import org.apache.james.mime4j.dom.Header;
 import org.apache.james.mime4j.dom.Message;
 import org.apache.james.mime4j.dom.MessageBuilder;
 import org.apache.james.mime4j.dom.MessageWriter;
 import org.apache.james.mime4j.dom.Multipart;
 import org.apache.james.mime4j.dom.TextBody;
 import org.apache.james.mime4j.dom.field.ContentTypeField;
+import org.apache.james.mime4j.field.Fields;
 import org.apache.james.mime4j.message.BasicBodyFactory;
 import org.apache.james.mime4j.message.BodyPart;
+import org.apache.james.mime4j.message.DefaultMessageBuilder;
 import org.apache.james.mime4j.message.MessageImpl;
 import org.apache.james.mime4j.message.MessageServiceFactoryImpl;
 import org.apache.james.mime4j.message.MultipartImpl;
@@ -87,7 +90,7 @@ public class Mime4jUtils {
 		messageWriter = messageServiceFactory.newMessageWriter();
 	}
 
-	public MessageImpl createMessage() {
+	public Message createMessage() {
 		return new MessageImpl();
 	}
 
@@ -110,13 +113,19 @@ public class Mime4jUtils {
 
 	public BodyPart bodyToBodyPart(Body body, String mimeType) {
 		BodyPart bodyPart = new BodyPart();
-		bodyPart.setBody(body,mimeType);
+		bodyPart.setBody(body);
+		Header header = new DefaultMessageBuilder().newHeader();
+		header.setField(Fields.contentType(mimeType));
+		bodyPart.setHeader(header);
 		return bodyPart;
 	}
 	
 	public BodyPart bodyToBodyPart(Body body, String mimeType, Map<String, String> parameters) {
 		BodyPart bodyPart = new BodyPart();
-		bodyPart.setBody(body, mimeType, parameters);
+		bodyPart.setBody(body);
+		Header header = new DefaultMessageBuilder().newHeader();
+		header.setField(Fields.contentType(mimeType, parameters));
+		bodyPart.setHeader(header);
 		return bodyPart;
 	}
 	
@@ -222,9 +231,11 @@ public class Mime4jUtils {
 		TextBody body = createBody(text);
 		// Create a text/plain body part
 		BodyPart bodyPart = new BodyPart();
-		bodyPart.setText(body, subtype);
-		bodyPart.setContentTransferEncoding("quoted-printable");
-
+		bodyPart.setBody(body);
+		Header header = new DefaultMessageBuilder().newHeader();
+		header.setField(Fields.contentType("text/" + subtype));
+		header.setField(Fields.contentTransferEncoding("quoted-printable"));
+		bodyPart.setHeader(header);
 		return bodyPart;
 	}
 
@@ -263,13 +274,16 @@ public class Mime4jUtils {
 
 		// Create a body part with the correct MIME-type and transfer encoding
 		BodyPart bodyPart = new BodyPart();
-		bodyPart.setBody(body, mimeType);
+		bodyPart.setBody(body);
+		Header header = new DefaultMessageBuilder().newHeader();
+		header.setField(Fields.contentType(mimeType));
 		if (!mimeType.endsWith("/rfc822")) {
-			bodyPart.setContentTransferEncoding("base64");
+			header.setField(Fields.contentTransferEncoding("base64"));
 		}
 		// Specify a filename in the Content-Disposition header (implicitly sets
 		// the disposition type to "attachment")
-		bodyPart.setFilename(fileName);
+		header.setField(Fields.contentDisposition("attachment", fileName));
+		bodyPart.setHeader(header);
 
 		return bodyPart;
 	}

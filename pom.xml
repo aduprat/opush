@@ -27,7 +27,7 @@
 
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-		<apache-mime4j.version>0.7.2</apache-mime4j.version>
+		<apache-mime4j.version>0.8.0</apache-mime4j.version>
 		<asciidoctor-maven-plugin.version>1.5.2</asciidoctor-maven-plugin.version>
 		<asm.version>4.1</asm.version>
 		<assertj-core.version>1.7.1</assertj-core.version>

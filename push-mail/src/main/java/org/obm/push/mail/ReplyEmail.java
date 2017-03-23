@@ -47,12 +47,13 @@ import javax.xml.transform.TransformerException;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.james.mime4j.MimeException;
 import org.apache.james.mime4j.dom.Entity;
+import org.apache.james.mime4j.dom.Header;
 import org.apache.james.mime4j.dom.Message;
 import org.apache.james.mime4j.dom.Multipart;
 import org.apache.james.mime4j.dom.TextBody;
+import org.apache.james.mime4j.field.Fields;
 import org.apache.james.mime4j.message.BasicBodyFactory;
 import org.apache.james.mime4j.message.BodyPart;
-import org.apache.james.mime4j.message.MessageImpl;
 import org.obm.push.bean.MSAttachementData;
 import org.obm.push.bean.MSEmailBodyType;
 import org.obm.push.configuration.OpushConfiguration;
@@ -95,14 +96,31 @@ public class ReplyEmail extends SendEmail {
 	}
 
 	private void setNewMessage(Message newMessage) throws MimeException {
-		newMessage.setSender(this.message.getSender());
-		newMessage.setSubject(this.message.getSubject());
-		newMessage.setBcc(this.message.getBcc());
-		newMessage.setCc(this.message.getCc());
-		newMessage.setTo(this.message.getTo());
-		newMessage.setFrom(this.message.getFrom());
-		newMessage.setDate(this.message.getDate());
-		newMessage.setReplyTo(this.message.getReplyTo());
+		Header header = newMessage.getHeader();
+		if (message.getSender() != null) {
+			header.setField(Fields.sender(message.getSender()));
+		}
+		if (message.getSubject() != null) {
+			header.setField(Fields.subject(message.getSubject()));
+		}
+		if (message.getBcc() != null) {
+			header.setField(Fields.bcc(message.getBcc()));
+		}
+		if (message.getCc() != null) {
+			header.setField(Fields.cc(message.getCc()));
+		}
+		if (message.getTo() != null) {
+			header.setField(Fields.to(message.getTo()));
+		}
+		if (message.getFrom() != null) {
+			header.setField(Fields.from(message.getFrom()));
+		}
+		if (message.getDate() != null) {
+			header.setField(Fields.date(message.getDate()));
+		}
+		if (message.getReplyTo() != null) {
+			header.setField(Fields.replyTo(message.getReplyTo()));
+		}
 		setMessage(newMessage);
 	}
 	
@@ -206,19 +224,21 @@ public class ReplyEmail extends SendEmail {
 	}
 
 	private Message createMessageWithBody(String mimeType, TextBody modifiedBodyText) throws MimeException {
-		MessageImpl newMessage = mime4jUtils.createMessage();
+		Message newMessage = mime4jUtils.createMessage();
 
 		boolean alreadyAttachmentsExist = outgoingMessageContainsAttachments();
 		if (alreadyAttachmentsExist || originalMailAttachments.isEmpty()) {
 			Map<String, String> params = mime4jUtils.getContentTypeHeaderParams(opushConfiguration.getDefaultEncoding());
-			newMessage.setBody(modifiedBodyText, mimeType, params);
+			newMessage.setBody(modifiedBodyText);
+			newMessage.getHeader().setField(Fields.contentType(mimeType, params));
 		} else {
 			Multipart mixedMultipart = this.mime4jUtils.createMultipartMixed();
 			BodyPart bodyPart = this.mime4jUtils.bodyToBodyPart(modifiedBodyText, mimeType);
 			mixedMultipart.addBodyPart(bodyPart);
 			copyOriginalMessageAttachmentsToMultipartMessage(mixedMultipart);
-			newMessage.setBody(mixedMultipart, Mime4jUtils.TYPE_MULTIPART_MIXED, 
-					mime4jUtils.getContentTypeHeaderMultipartParams(opushConfiguration.getDefaultEncoding()));
+			newMessage.setBody(mixedMultipart);
+			newMessage.getHeader().setField(Fields.contentType(Mime4jUtils.TYPE_MULTIPART_MIXED, 
+					mime4jUtils.getContentTypeHeaderMultipartParams(opushConfiguration.getDefaultEncoding())));
 		}
 		return newMessage;
 	}
@@ -232,9 +252,10 @@ public class ReplyEmail extends SendEmail {
 		Multipart newMultipart = createNewMultipartWithAttachment(multipart);
 		String mimeType = Mime4jUtils.TYPE_MULTIPART_PREFIX + newMultipart.getSubType();
 
-		MessageImpl newMessage = mime4jUtils.createMessage();
+		Message newMessage = mime4jUtils.createMessage();
 		Map<String, String> params = mime4jUtils.getContentTypeHeaderMultipartParams(opushConfiguration.getDefaultEncoding());
-		newMessage.setBody(newMultipart, mimeType, params);
+		newMessage.setBody(newMultipart);
+		newMessage.getHeader().setField(Fields.contentType(mimeType, params));
 		return newMessage;
 	}
 
