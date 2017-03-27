@@ -37,21 +37,17 @@ import java.io.UnsupportedEncodingException;
 import org.apache.james.mime4j.dom.Header;
 import org.apache.james.mime4j.dom.Message;
 import org.apache.james.mime4j.dom.Multipart;
-import org.apache.james.mime4j.dom.TextBody;
 import org.apache.james.mime4j.dom.address.Address;
 import org.apache.james.mime4j.dom.field.ContentTypeField;
 import org.apache.james.mime4j.field.Fields;
 import org.apache.james.mime4j.message.BodyPart;
 import org.apache.james.mime4j.message.DefaultMessageBuilder;
-import org.apache.james.mime4j.stream.RawField;
 import org.obm.push.bean.User;
 import org.obm.push.bean.ms.MSEmail;
 import org.obm.push.configuration.DeliveryStatusNotification;
-import org.obm.push.configuration.OpushConfiguration;
 import org.obm.push.exception.TemplateNotFoundException;
 import org.obm.push.mail.Mime4jUtils;
-import org.obm.push.template.DeliveryReceiptData;
-import org.obm.push.template.DeliveryReceiptData.Recipient;
+import org.obm.push.template.ReadReceiptData;
 import org.obm.push.template.TemplateService;
 import org.obm.push.utils.MimeContentType;
 import org.slf4j.Logger;
@@ -60,58 +56,51 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
 @Singleton
-public class DeliveryReceiptMessage {
+public class ReadReceiptMessage {
 
-	private static final Logger LOGGER = LoggerFactory.getLogger(DeliveryReceiptMessage.class);
-	private static final String LINE_BREAK = "\r\n";
+	private static final Logger LOGGER = LoggerFactory.getLogger(ReadReceiptMessage.class);
 
 	private final TemplateService templateService;
 	private final DeliveryStatusNotification deliveryStatusNotification;
-	private final OpushConfiguration opushConfiguration;
 	private final Mime4jUtils mime4jUtils;
 	private final MimeBoundaryFactory mimeBoundaryFactory;
 
 	@Inject
-	@VisibleForTesting DeliveryReceiptMessage(TemplateService templateService, 
+	@VisibleForTesting ReadReceiptMessage(TemplateService templateService, 
 			DeliveryStatusNotification deliveryStatusNotification,
-			OpushConfiguration opushConfiguration,
 			Mime4jUtils mime4jUtils,
 			MimeBoundaryFactory mimeBoundaryFactory) {
 		
 		this.templateService = templateService;
 		this.deliveryStatusNotification = deliveryStatusNotification;
-		this.opushConfiguration = opushConfiguration;
 		this.mime4jUtils = mime4jUtils;
 		this.mimeBoundaryFactory = mimeBoundaryFactory;
 	}
 	
 	public Optional<Message> from(User from, MSEmail originalMessage) {
-		if (deliveryStatusNotification.shouldSendDeliveryReceipt()) {
+		if (deliveryStatusNotification.shouldSendReadReceipt()) {
 			Preconditions.checkNotNull(originalMessage, "'originalMessage' is mandatory");
-			Recipient recipient = recipient(from);
-			Optional<String> textBody = textBody(recipient);
+			Optional<String> textBody = textBody(from.getEmail());
 			DeliveryStatusNotificationUtils deliveryStatusNotificationUtils = new DeliveryStatusNotificationUtils(originalMessage);
 			Optional<Address> to = deliveryStatusNotificationUtils.to();
-			if (textBody.isPresent() && to.isPresent()) {
+			if (textBody.isPresent()) {
 				try {
 					Multipart report = mime4jUtils.createMultipartReport();
-					report.addBodyPart(notification(textBody.get()));
-					report.addBodyPart(deliveryReport(recipient));
+					report.addBodyPart(readReport(textBody.get()));
 					report.addBodyPart(deliveryStatusNotificationUtils.originalMessage());
 					
 					Message newMessage = mime4jUtils.createMessage();
 					newMessage.setBody(report);
 					Header header = new DefaultMessageBuilder().newHeader();
 					header.setField(Fields.to(to.get()));
-					header.setField(Fields.subject("Successful Mail Delivery Report"));
+					header.setField(Fields.subject("Read Receipt (displayed)"));
 					header.setField(Fields.contentType("multipart/report", 
-							ImmutableMap.of("report-type", "delivery-status",
+							ImmutableMap.of("report-type", "delivery-notification",
 									ContentTypeField.PARAM_BOUNDARY, mimeBoundaryFactory.random())));
 					newMessage.setHeader(header);
 					
@@ -123,40 +112,16 @@ public class DeliveryReceiptMessage {
 		return Optional.absent();
 	}
 
-	private BodyPart notification(String textBody) throws UnsupportedEncodingException {
-		BodyPart bodyPart = mime4jUtils.createTextPart(textBody, MimeContentType.TEXT_PLAIN.getSubType());
-		Header header = new DefaultMessageBuilder().newHeader();
-		header.setField(new RawField("Content-Description", "Notification"));
-		header.setField(Fields.contentType(MimeContentType.TEXT_PLAIN.getContentType()));
-		bodyPart.setHeader(header);
-		return bodyPart;
+	private BodyPart readReport(String textBody) throws UnsupportedEncodingException {
+		return mime4jUtils.createTextPart(textBody, MimeContentType.TEXT_PLAIN.getSubType());
 	}
 
-	private Optional<String> textBody(Recipient recipient) {
+	private Optional<String> textBody(String address) {
 		try {
-			return Optional.fromNullable(templateService.compileDeliveryReceiptTextBody(new DeliveryReceiptData(opushConfiguration.getGlobalDomain(), ImmutableList.of(recipient))));
+			return Optional.fromNullable(templateService.compileReadReceiptTextBody(new ReadReceiptData(address)));
 		} catch (TemplateNotFoundException | IOException e) {
-			LOGGER.error("Fail while creating delivery receipt message", e);
+			LOGGER.error("Fail while creating read receipt", e);
 			return Optional.absent();
 		}
-	}
-
-	private Recipient recipient(User from) {
-		return new Recipient(from.getEmail());
-	}
-
-	private BodyPart deliveryReport(Recipient recipient) throws UnsupportedEncodingException {
-		StringBuffer buffer = new StringBuffer();
-		buffer.append("Reporting-MTA: dns; ").append(opushConfiguration.getGlobalDomain());
-		buffer.append(LINE_BREAK).append(LINE_BREAK);
-	
-		buffer.append("Original-Recipient: rfc822;").append(recipient.address).append(LINE_BREAK);
-		buffer.append("Final-Recipient: rfc822;").append(recipient.address).append(LINE_BREAK);
-		buffer.append("Action: delivered").append(LINE_BREAK);
-		buffer.append("Status: 2.1.5").append(LINE_BREAK);
-		buffer.append(LINE_BREAK);
-		
-		TextBody body = mime4jUtils.createBody(buffer.toString());
-		return mime4jUtils.bodyToBodyPart(body, "message/delivery-status");
 	}
 }
