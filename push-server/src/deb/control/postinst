@@ -87,6 +87,20 @@ cp "${TEMPLATE}" "${NEWFILE}"
 ucf --three-way --debconf-ok "$NEWFILE" "$CONFIG"
 ucfr opush "${CONFIG}"
 
+NEWFILE=${TEMPDIR}/delivery_receipt.mustache
+CONFIG=/etc/opush/delivery_receipt.mustache
+TEMPLATE=/usr/share/o-push/debian-conf/delivery_receipt.mustache
+cp "${TEMPLATE}" "${NEWFILE}"
+ucf --three-way --debconf-ok "$NEWFILE" "$CONFIG"
+ucfr opush "${CONFIG}"
+
+NEWFILE=${TEMPDIR}/read_receipt.mustache
+CONFIG=/etc/opush/read_receipt.mustache
+TEMPLATE=/usr/share/o-push/debian-conf/read_receipt.mustache
+cp "${TEMPLATE}" "${NEWFILE}"
+ucf --three-way --debconf-ok "$NEWFILE" "$CONFIG"
+ucfr opush "${CONFIG}"
+
 # When upgrading old OPush, init script is deleted
 if [ ! -f /etc/init.d/opush ]; then
 	cp /etc/opush/opush.sh /etc/init.d/opush 
