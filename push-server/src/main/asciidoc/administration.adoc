@@ -200,6 +200,21 @@ include::sources/dsn.ini[]
 | +receipt.read+		| +boolean+ (true/false)	| Opush send an automatic email when a user reads a message
 |===============================================================================================================
 
+In addition to this configuration, you can format the main body of the receipts sent. +
+The two template files are +/etc/opush/delivery_receipt.mustache+ and +/etc/opush/read_receipt.mustache+.
+
+In order to modify those templates, have a look to the http://mustache.github.io/mustache.5.html[Mustache.js] manual. +
+Here is the list of the supported tags (which will be filled by Opush):
+
+[cols="1,1,2", options="header"]
+|===============================================================================================================
+| Template							| Tag name					| Explanation					
+| ``delivery_receipt.mustache``	| +host+ 					| Opush host
+|									| +recipients+				| List of recipients of the original message
+|									| +recipients.address+	| Address of one recipient (recipients sub-tag)
+| +read_receipt.mustache+			| +address+				| Address of the message reader
+|===============================================================================================================
+
 === LDAP
 
 ==== About LDAP in Opush
