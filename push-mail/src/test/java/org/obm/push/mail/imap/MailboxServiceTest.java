@@ -42,6 +42,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Set;
 
+import org.assertj.core.data.MapEntry;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -62,6 +63,7 @@ import org.obm.push.mail.MailEnvModule;
 import org.obm.push.mail.MailboxService;
 import org.obm.push.mail.bean.Email;
 import org.obm.push.mail.bean.EmailReader;
+import org.obm.push.mail.bean.IMAPHeaders;
 import org.obm.push.mail.bean.MailboxFolder;
 import org.obm.push.mail.bean.MailboxFolders;
 import org.obm.push.mail.bean.MessageSet;
@@ -70,6 +72,7 @@ import org.obm.push.resource.ResourcesHolder;
 import org.obm.push.utils.DateUtils;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.inject.Inject;
 import com.icegreen.greenmail.util.GreenMail;
@@ -390,6 +393,19 @@ public class MailboxServiceTest {
 		assertThat(attachment).hasContentEqualTo(loadEmail("multipartAlternative-part3.txt"));
 	}
 
+	@Test
+	public void fetchHeadersShouldReturnSomeHeadersWhenPresent() throws Exception {
+		InputStream emailStream = loadEmail("multipartAlternative.eml");
+		mailboxService.storeInInbox(udr, new EmailReader(emailStream), false);
+
+		MailboxPath inbox = MailboxPath.of(IMAP_INBOX_NAME);
+		
+		IMAPHeaders headers = mailboxService.fetchHeaders(udr, inbox, 1l, ImmutableList.of("To", "importance", "unknown"));
+		
+		assertThat(headers.getRawHeaders()).containsOnly(MapEntry.entry("to", "\"=?utf-8?B?SmVhbiBKYXVyZXM=?=\" <test@domain>"),
+				MapEntry.entry("importance", "Normal"));
+	}
+	
 	private void consumeInputStream(Reader inputStream) throws IOException {
 		while (inputStream.read() != -1) {
 			// consume Inputstream

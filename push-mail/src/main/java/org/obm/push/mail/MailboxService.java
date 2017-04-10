@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -118,6 +119,8 @@ public interface MailboxService {
 			throws MailException;
 	
 	Collection<UIDEnvelope> fetchEnvelope(UserDataRequest udr, MailboxPath path, MessageSet messages) throws MailException;
+
+	IMAPHeaders fetchHeaders(UserDataRequest udr, MailboxPath path, long uid, List<String> headers) throws IOException;
 
 	Map<Long, IMAPHeaders> fetchPartHeaders(UserDataRequest udr, MailboxPath path, MessageSet uid, MimePart mimePart) throws IOException;
 

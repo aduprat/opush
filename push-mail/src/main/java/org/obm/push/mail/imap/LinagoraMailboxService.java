@@ -87,6 +87,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -606,6 +607,20 @@ public class LinagoraMailboxService implements MailboxService {
 		}
 		InputStream is = fetchMimePartStream(udr, path, uid, new MimeAddress(part));
 		return mimePart.decodeHeaders(is);
+	}
+
+	@Override
+	public IMAPHeaders fetchHeaders(UserDataRequest udr, MailboxPath path, long uid, List<String> headers) throws IOException {
+		try {
+			StoreClient store = imapClientProvider.getImapClient(udr);
+			Collection<IMAPHeaders> fetchHeaders = store.uidFetchHeaders(ImmutableList.of(uid), headers.toArray(new String[headers.size()]));
+			if (!fetchHeaders.isEmpty()) {
+				return FluentIterable.from(fetchHeaders).first().orNull();
+			}
+			return null;
+		} catch (OpushLocatorException | IMAPException e) {
+			throw new MailException(e);
+		}
 	}
 	
 	@Override

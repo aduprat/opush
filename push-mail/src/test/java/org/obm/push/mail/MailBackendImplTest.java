@@ -104,6 +104,8 @@ import org.obm.push.exception.activesync.ProcessingEmailException;
 import org.obm.push.mail.MailBackendSyncData.MailBackendSyncDataFactory;
 import org.obm.push.mail.bean.Email;
 import org.obm.push.mail.bean.EmailReader;
+import org.obm.push.mail.bean.IMAPHeaders;
+import org.obm.push.mail.bean.IMAPHeadersImpl;
 import org.obm.push.mail.bean.MailboxFolder;
 import org.obm.push.mail.bean.MailboxFolders;
 import org.obm.push.mail.bean.MessageSet;
@@ -125,6 +127,7 @@ import org.obm.push.utils.DateUtils;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
@@ -1230,6 +1233,12 @@ public class MailBackendImplTest {
 				.delivery(true)
 				.build());
 		expectLastCall();
+		expect(folderSnapshotDao.get(udr.getUser(), device, collectionId))
+			.andReturn(folder);
+		
+		IMAPHeadersImpl headers = new IMAPHeadersImpl(ImmutableMap.of("return-receipt-to", user.getEmail()));
+		expect(mailboxService.fetchHeaders(udr, collectionPath, 245l, ImmutableList.of("return-receipt-to")))
+			.andReturn(headers);
 		
 		ImmutableList<ItemChange> changes = ImmutableList.of(itemChange);
 		
@@ -1243,6 +1252,32 @@ public class MailBackendImplTest {
 				anyObject(Set.class), 
 				anyObject(ByteArrayInputStream.class));
 		expectLastCall();
+		
+		control.replay();
+		testee.processDeliveryReceipts(udr, inbox, changes);
+		control.verify();
+	}
+	
+	@Test
+	public void sendDeliveryReceiptsShouldNotSendDeliveryReceiptWhenNoReturnReceiptToHeader() throws Exception {
+		Message message = control.createMock(Message.class);
+		
+		MSEmail itemChangeData = control.createMock(MSEmail.class);
+		expect(itemChangeData.getMessageClass()).andReturn(MSMessageClass.NOTE);
+		ServerId serverId = collectionId.serverId(245);
+		ItemChange itemChange = ItemChange.builder().serverId(serverId).data(itemChangeData).isNew(true).build();
+		expect(deliveryReceiptMessage.from(user, itemChangeData))
+			.andReturn(Optional.of(message));
+		expect(deliveryStatusNotificationDao.hasAlreadyBeenDelivered(udr.getUser(), itemChange.getServerId()))
+			.andReturn(false);
+		expect(folderSnapshotDao.get(udr.getUser(), device, collectionId))
+			.andReturn(folder);
+		
+		IMAPHeadersImpl headers = new IMAPHeadersImpl();
+		expect(mailboxService.fetchHeaders(udr, collectionPath, 245l, ImmutableList.of("return-receipt-to")))
+			.andReturn(headers);
+		
+		ImmutableList<ItemChange> changes = ImmutableList.of(itemChange);
 		
 		control.replay();
 		testee.processDeliveryReceipts(udr, inbox, changes);
@@ -1346,6 +1381,12 @@ public class MailBackendImplTest {
 				.readReceipt(true)
 				.build());
 		expectLastCall();
+		expect(folderSnapshotDao.get(udr.getUser(), device, collectionId))
+			.andReturn(folder);
+		
+		IMAPHeadersImpl headers = new IMAPHeadersImpl(ImmutableMap.of("disposition-notification-to", user.getEmail()));
+		expect(mailboxService.fetchHeaders(udr, collectionPath, 245l, ImmutableList.of("disposition-notification-to")))
+			.andReturn(headers);
 		
 		expect(msEmailFetcher.fetch(udr, collectionId, collectionPath, ImmutableList.of(uid), null, Optional.<MimeSupport>absent()))
 			.andReturn(ImmutableList.of(uidMSEmail));
@@ -1360,6 +1401,42 @@ public class MailBackendImplTest {
 				anyObject(Set.class), 
 				anyObject(ByteArrayInputStream.class));
 		expectLastCall();
+		
+		control.replay();
+		testee.processReadReceipt(udr, msEmail, inbox, collectionId, serverId, collectionPath, MessageSet.singleton(uid));
+		control.verify();
+	}
+	
+	@Test
+	public void sendReadReceiptsShouldNotSendReadReceiptWhenNoDispositionNotificationHeader() throws Exception {
+		Message message = control.createMock(Message.class);
+		
+		MSEmail msEmail = MSEmail.builder()
+				.header(MSEmailHeader.builder().build())
+				.body(MSEmailBody.builder().build())
+				.attachements(ImmutableSet.<MSAttachement>of())
+				.build();
+		
+		long uid = 5l;
+		UidMSEmail uidMSEmail = UidMSEmail.uidBuilder()
+				.email(msEmail)
+				.uid(uid)
+				.build();
+		ServerId serverId = collectionId.serverId(245);
+		expect(readReceiptMessage.from(user, uidMSEmail))
+			.andReturn(Optional.of(message));
+		
+		expect(deliveryStatusNotificationDao.hasAlreadyBeenRead(udr.getUser(), serverId))
+			.andReturn(false);
+		expect(folderSnapshotDao.get(udr.getUser(), device, collectionId))
+			.andReturn(folder);
+
+		IMAPHeaders headers = new IMAPHeadersImpl();
+		expect(mailboxService.fetchHeaders(udr, collectionPath, 245l, ImmutableList.of("disposition-notification-to")))
+			.andReturn(headers);
+		
+		expect(msEmailFetcher.fetch(udr, collectionId, collectionPath, ImmutableList.of(uid), null, Optional.<MimeSupport>absent()))
+			.andReturn(ImmutableList.of(uidMSEmail));
 		
 		control.replay();
 		testee.processReadReceipt(udr, msEmail, inbox, collectionId, serverId, collectionPath, MessageSet.singleton(uid));

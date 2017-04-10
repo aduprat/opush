@@ -118,6 +118,7 @@ import org.obm.push.mail.AttachmentHelper.UnexpectedAttachmentIdException;
 import org.obm.push.mail.MailBackendSyncData.MailBackendSyncDataFactory;
 import org.obm.push.mail.bean.Email;
 import org.obm.push.mail.bean.EmailReader;
+import org.obm.push.mail.bean.IMAPHeaders;
 import org.obm.push.mail.bean.MailboxFolder;
 import org.obm.push.mail.bean.MailboxFolders;
 import org.obm.push.mail.bean.MessageSet;
@@ -151,6 +152,7 @@ import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
+import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
@@ -343,12 +345,16 @@ public class MailBackendImpl extends OpushBackend implements MailBackend {
 	}
 
 	private void processDeliveryReceipt(UserDataRequest udr, ItemChange itemChange) {
-		MSEmail msEmail = (MSEmail) itemChange.getData();
-		Optional<Message> deliveryReceipt = deliveryReceiptMessage.from(udr.getUser(), msEmail);
-		ServerId serverId = itemChange.getServerId();
-		if (shouldSendDeliveryReceipt(udr, msEmail.getMessageClass(), serverId, deliveryReceipt)) {
-			sendReceipt(udr, deliveryReceipt.get());
-			storeDeliveryReceiptFlag(udr.getUser(), serverId);
+		try  {
+			MSEmail msEmail = (MSEmail) itemChange.getData();
+			Optional<Message> deliveryReceipt = deliveryReceiptMessage.from(udr.getUser(), msEmail);
+			ServerId serverId = itemChange.getServerId();
+			if (shouldSendDeliveryReceipt(udr, msEmail.getMessageClass(), serverId, deliveryReceipt)) {
+				sendReceipt(udr, deliveryReceipt.get());
+				storeDeliveryReceiptFlag(udr.getUser(), serverId);
+			}
+		} catch (IOException e) {
+			logger.warn("Error whiling sending receipt", e);
 		}
 	}
 
@@ -371,10 +377,15 @@ public class MailBackendImpl extends OpushBackend implements MailBackend {
 			.toList();
 	}
 
-	private boolean shouldSendDeliveryReceipt(UserDataRequest udr, MSMessageClass msMessageClass, ServerId serverId, Optional<Message> deliveryReceipt) {
+	private boolean shouldSendDeliveryReceipt(UserDataRequest udr, MSMessageClass msMessageClass, ServerId serverId, Optional<Message> deliveryReceipt) throws IOException {
 		return deliveryReceipt.isPresent()
 				&& !msMessageClass.isReport()
-				&& !deliveryStatusNotificationDao.hasAlreadyBeenDelivered(udr.getUser(), serverId);
+				&& !deliveryStatusNotificationDao.hasAlreadyBeenDelivered(udr.getUser(), serverId)
+				&& hasReturnReceiptToHeader(udr, serverId);
+	}
+
+	private boolean hasReturnReceiptToHeader(UserDataRequest udr, ServerId serverId) throws IOException {
+		return hasHeader(udr, serverId, "return-receipt-to");
 	}
 
 	private void storeDeliveryReceiptFlag(User user, ServerId serverId) {
@@ -526,10 +537,14 @@ public class MailBackendImpl extends OpushBackend implements MailBackend {
 	}
 
 	private void sendReadReceipt(UserDataRequest udr, ServerId serverId, UidMSEmail msEmail) {
-		Optional<Message> readReceipt = readReceiptMessage.from(udr.getUser(), msEmail);
-		if (shouldSendReadReceipt(udr, msEmail, serverId, readReceipt)) {
-			sendReceipt(udr, readReceipt.get());
-			storeReadReceiptFlag(udr.getUser(), serverId);
+		try {
+			Optional<Message> readReceipt = readReceiptMessage.from(udr.getUser(), msEmail);
+			if (shouldSendReadReceipt(udr, msEmail, serverId, readReceipt)) {
+				sendReceipt(udr, readReceipt.get());
+				storeReadReceiptFlag(udr.getUser(), serverId);
+			}
+		} catch (IOException e) {
+			logger.warn("Error whiling sending receipt", e);
 		}
 	}
 
@@ -542,11 +557,26 @@ public class MailBackendImpl extends OpushBackend implements MailBackend {
 		}
 	}
 
-	private boolean shouldSendReadReceipt(UserDataRequest udr, UidMSEmail msEmail, ServerId serverId, Optional<Message> readReceipt) {
+	private boolean shouldSendReadReceipt(UserDataRequest udr, UidMSEmail msEmail, ServerId serverId, Optional<Message> readReceipt) throws IOException {
 		return readReceipt.isPresent()
 				&& !msEmail.isRead()
 				&& !msEmail.getMessageClass().isReport()
-				&& !deliveryStatusNotificationDao.hasAlreadyBeenRead(udr.getUser(), serverId);
+				&& !deliveryStatusNotificationDao.hasAlreadyBeenRead(udr.getUser(), serverId)
+				&& hasDispositionNotificationToHeader(udr, serverId);
+	}
+
+	private boolean hasDispositionNotificationToHeader(UserDataRequest udr, ServerId serverId) throws IOException {
+		return hasHeader(udr, serverId, "disposition-notification-to");
+	}
+
+	private boolean hasHeader(UserDataRequest udr, ServerId serverId, final String header) throws IOException {
+		Folder folder = folderSnapshotDao.get(udr.getUser(), udr.getDevice(), serverId.getCollectionId());
+		MailboxPath mailboxPath = folder.getTypedBackendId();
+		IMAPHeaders headers = mailboxService.fetchHeaders(udr, mailboxPath, getEmailUidFromServerId(serverId), ImmutableList.of(header));
+		if (!Strings.isNullOrEmpty(headers.getRawHeader(header))) {
+			return true;
+		}
+		return false;
 	}
 
 	private void storeReadReceiptFlag(User user, ServerId serverId) {
