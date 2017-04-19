@@ -208,3 +208,16 @@ Read the blog article for more information http://obm.org/blog/opush-321-release
 |http://ci-obm.linagora.com/jira/browse/OP-247[OP-247]|Faster synchronization of devices
 |=====================================
 
+=== 3.2.1 to 3.2.2
+
+.Information about this migration
+OP-250 brings some Delivery Status Notification to Opush have a look to its <<_delivery_status_notification, configuration>> for more information. +
+Read the blog article for more information http://obm.org/blog/opush-322-release.
+
+.Changelog
+[width="80%",cols="0,1",options="header"]
+|=====================================
+|*Key*|*Summary*
+|http://ci-obm.linagora.com/jira/browse/OP-250[OP-250]|Support basic Delivery Status Notification
+|=====================================
+
