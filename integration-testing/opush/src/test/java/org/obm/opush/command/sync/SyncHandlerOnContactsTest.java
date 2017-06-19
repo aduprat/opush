@@ -84,6 +84,7 @@ import org.obm.push.store.ItemTrackingDao;
 import org.obm.sync.base.EmailAddress;
 import org.obm.sync.book.AddressBook;
 import org.obm.sync.book.Contact;
+import org.obm.sync.book.DeletedContact;
 import org.obm.sync.book.Phone;
 import org.obm.sync.client.book.BookClient;
 import org.obm.sync.items.ContactChanges;
@@ -202,7 +203,7 @@ public class SyncHandlerOnContactsTest {
 		
 		expect(bookClient.listContactsChanged(user.accessToken, syncDate, contactBook.getId()))
 			.andReturn(new ContactChanges(ImmutableList.<Contact> of(initialContact),
-					ImmutableSet.<Integer> of(),
+					ImmutableSet.<DeletedContact> of(),
 					syncDate));
 		
 		mocksControl.replay();
@@ -281,7 +282,7 @@ public class SyncHandlerOnContactsTest {
 		// first sync
 		expect(bookClient.listContactsChanged(user.accessToken, syncDate, contactBook.getId()))
 			.andReturn(new ContactChanges(ImmutableList.<Contact> of(),
-					ImmutableSet.<Integer> of(),
+					ImmutableSet.<DeletedContact> of(),
 					syncDate));
 		
 		// second sync
@@ -316,7 +317,7 @@ public class SyncHandlerOnContactsTest {
 		
 		expect(bookClient.listContactsChanged(user.accessToken, syncDate, contactBook.getId()))
 			.andReturn(new ContactChanges(ImmutableList.<Contact> of(storedContact),
-					ImmutableSet.<Integer> of(),
+					ImmutableSet.<DeletedContact> of(),
 					syncDate));
 		mocksControl.replay();
 		opushServer.start();
@@ -402,7 +403,7 @@ public class SyncHandlerOnContactsTest {
 		// first sync
 		expect(bookClient.listContactsChanged(user.accessToken, syncDate, contactBook.getId()))
 			.andReturn(new ContactChanges(ImmutableList.of(initialContact),
-					ImmutableSet.<Integer> of(),
+					ImmutableSet.<DeletedContact> of(),
 					syncDate));
 		
 		// second sync
@@ -422,7 +423,7 @@ public class SyncHandlerOnContactsTest {
 		
 		expect(bookClient.listContactsChanged(user.accessToken, syncDate, contactBook.getId()))
 			.andReturn(new ContactChanges(ImmutableList.<Contact> of(),
-					ImmutableSet.<Integer> of(),
+					ImmutableSet.<DeletedContact> of(),
 					syncDate));
 		
 		String clientId = null;
@@ -511,7 +512,7 @@ public class SyncHandlerOnContactsTest {
 		// first sync
 		expect(bookClient.listContactsChanged(user.accessToken, syncDate, contactBook.getId()))
 			.andReturn(new ContactChanges(ImmutableList.<Contact> of(initialContact),
-					ImmutableSet.<Integer> of(),
+					ImmutableSet.<DeletedContact> of(),
 					syncDate));
 		
 		// second sync
@@ -529,7 +530,7 @@ public class SyncHandlerOnContactsTest {
 		
 		expect(bookClient.listContactsChanged(user.accessToken, syncDate, contactBook.getId()))
 			.andReturn(new ContactChanges(ImmutableList.<Contact> of(),
-					ImmutableSet.<Integer> of(),
+					ImmutableSet.<DeletedContact> of(),
 					syncDate));
 		
 		String clientId = null;
@@ -624,7 +625,7 @@ public class SyncHandlerOnContactsTest {
 
 		expect(bookClient.listContactsChanged(user.accessToken, syncDate, contactBook.getId()))
 			.andReturn(new ContactChanges(ImmutableList.<Contact> of(initialContact),
-					ImmutableSet.<Integer> of(),
+					ImmutableSet.<DeletedContact> of(),
 					syncDate));
 		
 		mocksControl.replay();
@@ -746,7 +747,7 @@ public class SyncHandlerOnContactsTest {
 		expect(bookClient.listContactsChanged(user.accessToken, syncDate, contactBook.getId()))
 			.andReturn(new ContactChanges(
 					ImmutableList.<Contact> of(),
-					ImmutableSet.<Integer> of(),
+					ImmutableSet.<DeletedContact> of(),
 					syncDate)).anyTimes();
 
 		MSContact msContact = new MSContact();

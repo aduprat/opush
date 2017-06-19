@@ -31,6 +31,8 @@
 package org.obm.push.configuration;
 
 import java.nio.charset.Charset;
+import java.util.Locale;
+import java.util.ResourceBundle;
 
 import org.obm.configuration.DataConfiguration;
 import org.obm.configuration.DomainConfiguration;
@@ -48,4 +50,6 @@ public interface OpushConfiguration extends DomainConfiguration, DataConfigurati
 	int defaultWindowSize();
 	
 	Optional<Integer> maxWindowSize();
+	
+	ResourceBundle getResourceBundle(Locale locale);
 }

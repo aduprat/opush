@@ -79,6 +79,7 @@ import org.obm.push.utils.DateUtils;
 import org.obm.sync.auth.AccessToken;
 import org.obm.sync.auth.ServerFault;
 import org.obm.sync.book.Contact;
+import org.obm.sync.book.DeletedContact;
 import org.obm.sync.client.book.BookClient;
 import org.obm.sync.exception.ContactNotFoundException;
 import org.obm.sync.items.ContactChanges;
@@ -176,9 +177,9 @@ public class ContactsBackend extends ObmSyncBackend<WindowingContact> {
 					.build());
 		}
 		
-		for (Integer remove : contactChanges.getRemoved()) {
+		for (DeletedContact remove : contactChanges.getRemoved()) {
 			builder.deletion(WindowingContact.builder()
-					.uid(remove)
+					.uid(remove.getId())
 					.build());
 		}
 		

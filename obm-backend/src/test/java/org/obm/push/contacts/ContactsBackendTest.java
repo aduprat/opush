@@ -89,6 +89,7 @@ import org.obm.sync.auth.AccessToken;
 import org.obm.sync.auth.ServerFault;
 import org.obm.sync.book.AddressBook;
 import org.obm.sync.book.Contact;
+import org.obm.sync.book.DeletedContact;
 import org.obm.sync.book.Folder;
 import org.obm.sync.client.book.BookClient;
 import org.obm.sync.exception.ContactNotFoundException;
@@ -202,7 +203,7 @@ public class ContactsBackendTest {
 				.syncKey(new SyncKey("1234567890a"))
 				.build();
 
-		ContactChanges contactChanges = new ContactChanges(ImmutableList.<Contact> of(), ImmutableSet.<Integer> of(), currentDate);
+		ContactChanges contactChanges = new ContactChanges(ImmutableList.<Contact> of(), ImmutableSet.<DeletedContact> of(), currentDate);
 		expect(bookClient.listContactsChanged(token, currentDate, bookId.getId())).andReturn(contactChanges).once();
 		expect(folderSnapshotDao.get(user, device, collectionId)).andReturn(
 			org.obm.push.bean.change.hierarchy.Folder.builder()
@@ -252,7 +253,7 @@ public class ContactsBackendTest {
 					.folderType(FolderType.DEFAULT_CONTACTS_FOLDER)
 					.build());
 			
-		ContactChanges contactChanges = new ContactChanges(ImmutableList.of(contact, contact2), ImmutableSet.<Integer> of(), currentDate);
+		ContactChanges contactChanges = new ContactChanges(ImmutableList.of(contact, contact2), ImmutableSet.<DeletedContact> of(), currentDate);
 		expect(bookClient.firstListContactsChanged(token, currentDate, bookId)).andReturn(contactChanges).once();
 		
 		SyncCollectionOptions syncCollectionOptions = SyncCollectionOptions.builder()
@@ -306,7 +307,7 @@ public class ContactsBackendTest {
 		
 		int contactChangedUid = 215;
 		Contact contactChanged = newContactObject(contactChangedUid);
-		ContactChanges contactChanges = new ContactChanges(ImmutableList.<Contact> of(contactChanged), ImmutableSet.<Integer> of(), currentDate);
+		ContactChanges contactChanges = new ContactChanges(ImmutableList.<Contact> of(contactChanged), ImmutableSet.<DeletedContact> of(), currentDate);
 		expect(bookClient.listContactsChanged(token, currentDate, bookId))
 			.andReturn(contactChanges).once();
 		

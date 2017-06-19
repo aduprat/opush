@@ -55,10 +55,12 @@ import com.google.common.collect.ImmutableSet;
 public class OpushStaticConfiguration extends StaticLocatorConfiguration implements OpushConfiguration {
 
 	private final Configuration configuration;
+	private final ResourceBundle resourceBundle;
 
 	public OpushStaticConfiguration(OpushConfigurationFixture configuration) {
 		super(configuration.locator);
 		this.configuration = configuration;
+		this.resourceBundle = ResourceBundle.getBundle("Messages", Locale.FRANCE);
 	}
 
 	public static class Email implements OpushEmailConfiguration {
@@ -230,7 +232,7 @@ public class OpushStaticConfiguration extends StaticLocatorConfiguration impleme
 
 	@Override
 	public ResourceBundle getResourceBundle(Locale locale) {
-		return configuration.bundle;
+		return resourceBundle;
 	}
 
 	@Override

@@ -174,6 +174,11 @@ public abstract class AbstractOpushEnv extends ActiveSyncServletModule {
 			public boolean isReadOnly() {
 				return false;
 			}
+
+			@Override
+			public boolean isAutoTruncateEnabled() {
+				return false;
+			}
 		};
 	}
 	

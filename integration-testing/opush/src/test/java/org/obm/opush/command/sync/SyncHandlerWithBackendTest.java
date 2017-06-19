@@ -136,6 +136,7 @@ import org.obm.push.utils.DateUtils;
 import org.obm.sync.auth.AuthFault;
 import org.obm.sync.book.AddressBook;
 import org.obm.sync.book.Contact;
+import org.obm.sync.book.DeletedContact;
 import org.obm.sync.calendar.Event;
 import org.obm.sync.calendar.EventExtId;
 import org.obm.sync.calendar.EventMeetingStatus;
@@ -667,7 +668,7 @@ public class SyncHandlerWithBackendTest {
 		
 		expect(bookClient.firstListContactsChanged(user.accessToken, initialDate, contactCollectionId.asInt()))
 			.andReturn(new ContactChanges(ImmutableList.of(contact, contact2),
-					ImmutableSet.<Integer> of(),
+					ImmutableSet.<DeletedContact> of(),
 					secondDate));
 		
 		ServerId serverId = contactCollectionId.serverId(contact.getUid());
@@ -687,12 +688,12 @@ public class SyncHandlerWithBackendTest {
 		
 		expect(bookClient.firstListContactsChanged(user.accessToken, initialDate, contactCollectionId.asInt()))
 		.andReturn(new ContactChanges(ImmutableList.of(contact, contact2),
-				ImmutableSet.<Integer> of(),
+				ImmutableSet.<DeletedContact> of(),
 				newSecondDate));
 	
 		expect(bookClient.listContactsChanged(user.accessToken, newThirdDate, contactCollectionId.asInt()))
 			.andReturn(new ContactChanges(ImmutableList.<Contact> of(),
-					ImmutableSet.<Integer> of(),
+					ImmutableSet.<DeletedContact> of(),
 					newThirdDate));
 		
 		itemTrackingDao.markAsSynced(anyObject(ItemSyncState.class), anyObject(Set.class));
@@ -1080,7 +1081,7 @@ public class SyncHandlerWithBackendTest {
 		
 		expect(bookClient.listContactsChanged(user.accessToken, firstDate, contactCollectionId.asInt()))
 			.andReturn(new ContactChanges(ImmutableList.<Contact> of(),
-					ImmutableSet.<Integer> of(),
+					ImmutableSet.<DeletedContact> of(),
 					firstDate));
 		
 		mocksControl.replay();
