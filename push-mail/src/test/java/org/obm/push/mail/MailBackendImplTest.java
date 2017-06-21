@@ -1285,6 +1285,31 @@ public class MailBackendImplTest {
 	}
 	
 	@Test
+	public void sendDeliveryReceiptsShouldNotSendDeliveryReceiptWhenNoHeaders() throws Exception {
+		Message message = control.createMock(Message.class);
+		
+		MSEmail itemChangeData = control.createMock(MSEmail.class);
+		expect(itemChangeData.getMessageClass()).andReturn(MSMessageClass.NOTE);
+		ServerId serverId = collectionId.serverId(245);
+		ItemChange itemChange = ItemChange.builder().serverId(serverId).data(itemChangeData).isNew(true).build();
+		expect(deliveryReceiptMessage.from(user, itemChangeData))
+			.andReturn(Optional.of(message));
+		expect(deliveryStatusNotificationDao.hasAlreadyBeenDelivered(udr.getUser(), itemChange.getServerId()))
+			.andReturn(false);
+		expect(folderSnapshotDao.get(udr.getUser(), device, collectionId))
+			.andReturn(folder);
+		
+		expect(mailboxService.fetchHeaders(udr, collectionPath, 245l, ImmutableList.of("return-receipt-to")))
+			.andReturn(null);
+		
+		ImmutableList<ItemChange> changes = ImmutableList.of(itemChange);
+		
+		control.replay();
+		testee.processDeliveryReceipts(udr, inbox, changes);
+		control.verify();
+	}
+	
+	@Test
 	public void sendDeliveryReceiptsShouldNotSendDeliveryReceiptWhenAlreadySent() throws Exception {
 		Message message = control.createMock(Message.class);
 		MSEmail itemChangeData = control.createMock(MSEmail.class);
@@ -1434,6 +1459,41 @@ public class MailBackendImplTest {
 		IMAPHeaders headers = new IMAPHeadersImpl();
 		expect(mailboxService.fetchHeaders(udr, collectionPath, 245l, ImmutableList.of("disposition-notification-to")))
 			.andReturn(headers);
+		
+		expect(msEmailFetcher.fetch(udr, collectionId, collectionPath, ImmutableList.of(uid), null, Optional.<MimeSupport>absent()))
+			.andReturn(ImmutableList.of(uidMSEmail));
+		
+		control.replay();
+		testee.processReadReceipt(udr, msEmail, inbox, collectionId, serverId, collectionPath, MessageSet.singleton(uid));
+		control.verify();
+	}
+	
+	@Test
+	public void sendReadReceiptsShouldNotSendReadReceiptWhenNoHeaders() throws Exception {
+		Message message = control.createMock(Message.class);
+		
+		MSEmail msEmail = MSEmail.builder()
+				.header(MSEmailHeader.builder().build())
+				.body(MSEmailBody.builder().build())
+				.attachements(ImmutableSet.<MSAttachement>of())
+				.build();
+		
+		long uid = 5l;
+		UidMSEmail uidMSEmail = UidMSEmail.uidBuilder()
+				.email(msEmail)
+				.uid(uid)
+				.build();
+		ServerId serverId = collectionId.serverId(245);
+		expect(readReceiptMessage.from(user, uidMSEmail))
+			.andReturn(Optional.of(message));
+		
+		expect(deliveryStatusNotificationDao.hasAlreadyBeenRead(udr.getUser(), serverId))
+			.andReturn(false);
+		expect(folderSnapshotDao.get(udr.getUser(), device, collectionId))
+			.andReturn(folder);
+
+		expect(mailboxService.fetchHeaders(udr, collectionPath, 245l, ImmutableList.of("disposition-notification-to")))
+			.andReturn(null);
 		
 		expect(msEmailFetcher.fetch(udr, collectionId, collectionPath, ImmutableList.of(uid), null, Optional.<MimeSupport>absent()))
 			.andReturn(ImmutableList.of(uidMSEmail));

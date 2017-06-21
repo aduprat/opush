@@ -573,7 +573,7 @@ public class MailBackendImpl extends OpushBackend implements MailBackend {
 		Folder folder = folderSnapshotDao.get(udr.getUser(), udr.getDevice(), serverId.getCollectionId());
 		MailboxPath mailboxPath = folder.getTypedBackendId();
 		IMAPHeaders headers = mailboxService.fetchHeaders(udr, mailboxPath, getEmailUidFromServerId(serverId), ImmutableList.of(header));
-		if (!Strings.isNullOrEmpty(headers.getRawHeader(header))) {
+		if (headers != null && !Strings.isNullOrEmpty(headers.getRawHeader(header))) {
 			return true;
 		}
 		return false;
