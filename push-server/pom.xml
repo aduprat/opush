@@ -17,8 +17,8 @@
 	<dependencies>
 		<dependency>
 			<groupId>com.linagora</groupId>
-			<artifactId>crsh.shell.embed.guice</artifactId>
-			<version>0.4</version>
+			<artifactId>crash.shell.embed.guice</artifactId>
+			<version>0.4-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>com.linagora.obm</groupId>
@@ -81,15 +81,19 @@
 			<artifactId>assertj-core</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.crsh</groupId>
-			<artifactId>crsh.shell.ssh</artifactId>
-			<version>1.2.11</version>
-			<exclusions>
-				<exclusion>
-					<groupId>commons-logging</groupId>
-					<artifactId>commons-logging</artifactId>
-				</exclusion>
-			</exclusions>
+		    <groupId>org.crashub</groupId>
+		    <artifactId>crash.shell</artifactId>
+		    <version>1.3.2</version>
+		</dependency>
+		<dependency>
+		    <groupId>org.crashub</groupId>
+		    <artifactId>crash.cli</artifactId>
+		    <version>1.3.2</version>
+		</dependency>
+		<dependency>
+		    <groupId>org.crashub</groupId>
+		    <artifactId>crash.connectors.ssh</artifactId>
+		    <version>1.3.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
