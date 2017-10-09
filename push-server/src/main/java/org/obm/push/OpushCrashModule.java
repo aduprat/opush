@@ -41,6 +41,7 @@ import org.obm.sync.LifecycleListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableList;
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
 import com.google.inject.Provides;
@@ -55,10 +56,11 @@ public class OpushCrashModule extends AbstractModule {
 	private static final Logger logger = LoggerFactory.getLogger(LoggerModule.CONFIGURATION);
 	
 	protected void configure() {
-		boolean autostart = false;
-		install(new CrashGuiceSupport(autostart));
 		Multibinder<CRaSHPlugin<?>> pluginBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<CRaSHPlugin<?>>(){});
 		pluginBinder.addBinding().to(ObmSyncAuthenticationPlugin.class);
+
+		boolean autostart = false;
+		install(new CrashGuiceSupport(autostart));
 		bind(CRaSHBootstrap.class).asEagerSingleton();
 		
 		Multibinder<LifecycleListener> lifecycleListeners = Multibinder.newSetBinder(binder(), LifecycleListener.class);
@@ -102,8 +104,8 @@ public class OpushCrashModule extends AbstractModule {
 	@Provides
 	public CrashGuiceConfiguration crashConfiguration(RemoteConsoleConfiguration configuration) {
 		return CrashGuiceConfiguration.builder()
-				.property(SSHPlugin.SSH_PORT.getName(), configuration.port())
-				.property(AuthenticationPlugin.AUTH.getName(), "obm-sync")
+				.property(SSHPlugin.SSH_PORT, configuration.port())
+				.property(AuthenticationPlugin.AUTH, ImmutableList.of("obm-sync"))
 				.build();
 	}
 }

@@ -1,6 +1,6 @@
 /* ***** BEGIN LICENSE BLOCK *****
  * 
- * Copyright (C) 2014 Linagora
+ * Copyright (C) 2017 Linagora
  *
  * This program is free software: you can redistribute it and/or 
  * modify it under the terms of the GNU Affero General Public License as 
@@ -29,12 +29,14 @@
  * OBM connectors. 
  * 
  * ***** END LICENSE BLOCK ***** */
+import org.crsh.cli.Command;
+import org.crsh.cli.Usage;
 import org.crsh.text.ui.UIBuilder
 import org.obm.push.bean.migration.StatusSummary.Status
 import org.obm.push.bean.migration.VersionUpdate
 
 @Usage("Cassandra schema management")
-class schema extends CRaSHCommand {
+class schema {
   
   def getMigrationService() {
     context.attributes.beans["org.obm.push.migration.OpushMigrationService"]
